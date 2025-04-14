@@ -1,0 +1,89 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="flex-1 flex flex-col overflow-hidden">
+    <!-- 顶部标题栏 -->
+    <header class="bg-white shadow">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <h1 class="text-2xl font-bold text-gray-900">分销比例配置</h1>
+        </div>
+    </header>
+
+    <!-- 主要内容区 -->
+    <main class="flex-1 overflow-y-auto">
+        <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <!-- 提示消息 -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="mb-4 p-4 rounded-md {% if category == 'error' %}bg-red-50 text-red-800{% else %}bg-green-50 text-green-800{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- 配置表单 -->
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <form method="post" class="space-y-6">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <!-- 一级分销比例 -->
+                            <div>
+                                <label for="level1_rate" class="block text-sm font-medium text-gray-700">
+                                    一级好友分销比例
+                                </label>
+                                <div class="mt-1 relative rounded-md shadow-sm">
+                                    <input type="number" 
+                                           name="level1_rate" 
+                                           id="level1_rate" 
+                                           step="0.01" 
+                                           min="0" 
+                                           max="1"
+                                           value="{{ level1_rate }}"
+                                           class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-3 pr-12 sm:text-sm border-gray-300 rounded-md"
+                                           placeholder="0.10">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div>
+                                <p class="mt-2 text-sm text-gray-500">输入0.1表示10%的分销比例</p>
+                            </div>
+
+                            <!-- 二级分销比例 -->
+                            <div>
+                                <label for="level2_rate" class="block text-sm font-medium text-gray-700">
+                                    二级好友分销比例
+                                </label>
+                                <div class="mt-1 relative rounded-md shadow-sm">
+                                    <input type="number" 
+                                           name="level2_rate" 
+                                           id="level2_rate" 
+                                           step="0.01" 
+                                           min="0" 
+                                           max="1"
+                                           value="{{ level2_rate }}"
+                                           class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-3 pr-12 sm:text-sm border-gray-300 rounded-md"
+                                           placeholder="0.05">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div>
+                                <p class="mt-2 text-sm text-gray-500">输入0.05表示5%的分销比例</p>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end">
+                            <button type="submit"
+                                    class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                保存配置
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %} 

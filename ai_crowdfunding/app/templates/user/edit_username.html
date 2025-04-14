@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- 顶部状态栏 -->
+    <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white">
+        <div class="px-4 pt-12 pb-6">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center">
+                    <a href="{{ url_for('user.settings') }}" class="mr-3">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <h1 class="text-2xl font-bold">修改用户名</h1>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="px-4 -mt-4">
+        <div class="bg-white rounded-2xl shadow-sm p-6">
+            <form action="{{ url_for('user.update_username') }}" method="post" class="space-y-6">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                <!-- 当前用户名 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">当前用户名</label>
+                    <div class="mt-1">
+                        <input type="text" value="{{ current_user.username }}" disabled
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-500 sm:text-sm">
+                    </div>
+                </div>
+
+                <!-- 新用户名 -->
+                <div>
+                    <label for="new_username" class="block text-sm font-medium text-gray-700">新用户名</label>
+                    <div class="mt-1">
+                        <input type="text" id="new_username" name="new_username" required
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                               placeholder="请输入新的用户名">
+                    </div>
+                    <p class="mt-1 text-sm text-gray-500">用户名长度为3-20个字符，只能包含字母、数字和下划线</p>
+                </div>
+
+                <!-- 提交按钮 -->
+                <div class="pt-4">
+                    <button type="submit" 
+                            class="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        确认修改
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

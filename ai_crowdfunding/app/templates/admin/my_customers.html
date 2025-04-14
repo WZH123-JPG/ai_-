@@ -1,0 +1,259 @@
+{% extends "admin/base.html" %}
+
+{% block breadcrumb %}
+<li>
+    <div class="flex items-center">
+        <span class="text-gray-500">我的客户</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- 页面标题 -->
+    <div class="flex justify-between items-center">
+        <h2 class="text-2xl font-bold text-gray-900">我的客户</h2>
+        <div class="flex items-center space-x-4">
+            <span class="text-sm text-gray-500">
+                总客户数：<span class="font-medium">{{ customers.total }}</span>
+            </span>
+            <button onclick="copyReferralLink()"
+               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <i class="fas fa-copy mr-2"></i>
+                复制推广链接
+            </button>
+        </div>
+    </div>
+
+    <!-- 隐藏的推广链接输入框 -->
+    <input type="text" id="referralLink" value="{{ referral_code }}" style="position: absolute; left: -9999px;">
+
+    <!-- 客户列表 -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-md">
+        <ul class="divide-y divide-gray-200">
+            {% for customer in customers.items %}
+            <li>
+                <div class="px-4 py-4 sm:px-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                {% if customer.avatar_path %}
+                                <img src="{{ url_for('static', filename='uploads/' + customer.avatar_path) }}" 
+                                     alt="{{ customer.username }}"
+                                     class="h-12 w-12 rounded-full object-cover">
+                                {% else %}
+                                <img src="{{ url_for('static', filename='images/default-avatar.png') }}" 
+                                     alt="默认头像"
+                                     class="h-12 w-12 rounded-full object-cover">
+                                {% endif %}
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">
+                                    {{ customer.username }}
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    <span class="mr-4">注册时间：{{ customer.created_at.strftime('%Y-%m-%d') }}</span>
+                                    <span class="mr-4">投资总额：¥{{ "%.2f"|format(customer.total_investment) }}</span>
+                                    <span>收益总额：¥{{ "%.2f"|format(customer.total_profit) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex space-x-4">
+                            <a href="{{ url_for('admin.user_detail', user_id=customer.id) }}" 
+                               class="text-blue-600 hover:text-blue-900">
+                                <i class="fas fa-eye mr-1"></i>
+                                查看详情
+                            </a>
+                            {% if customer.is_active %}
+                            <button type="button" onclick="disableCustomer({{ customer.id }})"
+                                    class="text-red-600 hover:text-red-900">
+                                <i class="fas fa-ban mr-1"></i>
+                                禁用账户
+                            </button>
+                            {% else %}
+                            <button type="button" onclick="enableCustomer({{ customer.id }})"
+                                    class="text-green-600 hover:text-green-900">
+                                <i class="fas fa-check-circle mr-1"></i>
+                                启用账户
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- 分页 -->
+    {% if customers.pages > 1 %}
+    <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+        <div class="flex-1 flex justify-between sm:hidden">
+            {% if customers.has_prev %}
+            <a href="{{ url_for('admin.my_customers', page=customers.prev_num) }}"
+               class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                上一页
+            </a>
+            {% endif %}
+            {% if customers.has_next %}
+            <a href="{{ url_for('admin.my_customers', page=customers.next_num) }}"
+               class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                下一页
+            </a>
+            {% endif %}
+        </div>
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-gray-700">
+                    显示第 <span class="font-medium">{{ customers.page }}</span> 页
+                    共 <span class="font-medium">{{ customers.pages }}</span> 页
+                    总计 <span class="font-medium">{{ customers.total }}</span> 条记录
+                </p>
+            </div>
+            <div>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    {% if customers.has_prev %}
+                    <a href="{{ url_for('admin.my_customers', page=customers.prev_num) }}"
+                       class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <span class="sr-only">上一页</span>
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                    {% endif %}
+
+                    {% for page in customers.iter_pages() %}
+                        {% if page %}
+                            {% if page != customers.page %}
+                            <a href="{{ url_for('admin.my_customers', page=page) }}"
+                               class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                {{ page }}
+                            </a>
+                            {% else %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
+                                {{ page }}
+                            </span>
+                            {% endif %}
+                        {% else %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                ...
+                            </span>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if customers.has_next %}
+                    <a href="{{ url_for('admin.my_customers', page=customers.next_num) }}"
+                       class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <span class="sr-only">下一页</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- JavaScript -->
+<script>
+function copyReferralLink() {
+    const linkInput = document.getElementById('referralLink');
+    
+    // 将输入框添加到body中
+    document.body.appendChild(linkInput);
+    
+    // 选择文本
+    linkInput.focus();
+    linkInput.select();
+    
+    try {
+        // 尝试复制
+        const successful = document.execCommand('copy');
+        
+        if (successful) {
+            // 复制成功的视觉反馈
+            const button = event.target.closest('button');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-check mr-2"></i>复制成功';
+            button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            button.classList.add('bg-green-600', 'hover:bg-green-700');
+            
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.classList.remove('bg-green-600', 'hover:bg-green-700');
+                button.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            }, 2000);
+        } else {
+            showFallbackCopy(linkInput.value);
+        }
+    } catch (err) {
+        showFallbackCopy(linkInput.value);
+        console.error('复制失败:', err);
+    }
+    
+    // 移除临时输入框
+    document.body.removeChild(linkInput);
+}
+
+function showFallbackCopy(text) {
+    // 创建一个模态框来显示链接
+    const modal = document.createElement('div');
+    modal.style.position = 'fixed';
+    modal.style.top = '50%';
+    modal.style.left = '50%';
+    modal.style.transform = 'translate(-50%, -50%)';
+    modal.style.backgroundColor = 'white';
+    modal.style.padding = '20px';
+    modal.style.borderRadius = '8px';
+    modal.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+    modal.style.zIndex = '1000';
+    modal.style.maxWidth = '90%';
+    modal.style.width = '500px';
+    
+    modal.innerHTML = `
+        <h3 class="text-lg font-medium mb-2">推广码</h3>
+        <div class="bg-gray-100 p-3 rounded mb-4 break-all">
+            <code>${text}</code>
+        </div>
+        <div class="text-sm text-gray-500 mb-4">
+            请手动选择并复制上面的推广码
+        </div>
+        <button onclick="this.parentElement.remove()" 
+                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+            关闭
+        </button>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+function disableCustomer(customerId) {
+    if (confirm('确定要禁用该客户账户吗？')) {
+        fetch(`/admin/users/${customerId}/disable`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            }
+        });
+    }
+}
+
+function enableCustomer(customerId) {
+    if (confirm('确定要启用该客户账户吗？')) {
+        fetch(`/admin/users/${customerId}/enable`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            }
+        });
+    }
+}
+</script>
+{% endblock %} 

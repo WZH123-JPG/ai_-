@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh" class="w-full h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>AI众筹平台</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+        }
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            width: 100%;
+        }
+        .page-content {
+            padding-bottom: 4rem;
+            width: 100%;
+            min-height: calc(100vh - 4rem);
+        }
+        /* 移动端优化 */
+        @media (max-width: 640px) {
+            .container {
+                width: 100%;
+                max-width: 100%;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+                padding-top: 0 !important;
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 w-full h-full">
+    <!-- 页面内容 -->
+    <div class="page-content">
+        <div class="container mx-auto sm:px-4 sm:py-4">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="bg-{{ 'green' if category == 'success' else 'red' if category == 'error' else 'blue' }}-100 border-l-4 border-{{ 'green' if category == 'success' else 'red' if category == 'error' else 'blue' }}-500 text-{{ 'green' if category == 'success' else 'red' if category == 'error' else 'blue' }}-700 p-4 mb-4 rounded-lg" role="alert">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- 底部导航栏 -->
+    <nav class="bottom-nav bg-white shadow-lg border-t border-gray-200">
+        <div class="flex justify-around items-center h-16">
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('main.index') }}" class="flex flex-col items-center text-gray-500 hover:text-blue-500">
+                    <i class="fas fa-home text-xl"></i>
+                    <span class="text-xs mt-1">首页</span>
+                </a>
+                <a href="{{ url_for('agent.talk') }}" class="flex flex-col items-center text-gray-500 hover:text-blue-500">
+                    <i class="fas fa-robot text-xl"></i>
+                    <span class="text-xs mt-1">AI助手</span>
+                </a>
+                <a href="{{ url_for('user.referrals') }}" class="flex flex-col items-center text-gray-500 hover:text-blue-500">
+                    <i class="fas fa-share-alt text-xl"></i>
+                    <span class="text-xs mt-1">邀请</span>
+                </a>
+                <a href="{{ url_for('user.profile') }}" class="flex flex-col items-center text-gray-500 hover:text-blue-500">
+                    <i class="fas fa-user text-xl"></i>
+                    <span class="text-xs mt-1">我的</span>
+                </a>
+            {% else %}
+                <a href="{{ url_for('main.index') }}" class="flex flex-col items-center text-gray-500 hover:text-blue-500">
+                    <i class="fas fa-home text-xl"></i>
+                    <span class="text-xs mt-1">首页</span>
+                </a>
+                <a href="{{ url_for('auth.login') }}" class="flex flex-col items-center text-gray-500 hover:text-blue-500">
+                    <i class="fas fa-sign-in-alt text-xl"></i>
+                    <span class="text-xs mt-1">登录</span>
+                </a>
+                <a href="{{ url_for('auth.register') }}" class="flex flex-col items-center text-gray-500 hover:text-blue-500">
+                    <i class="fas fa-user-plus text-xl"></i>
+                    <span class="text-xs mt-1">注册</span>
+                </a>
+            {% endif %}
+        </div>
+    </nav>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

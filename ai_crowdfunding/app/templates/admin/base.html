@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>AI众筹管理后台</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-gray-100">
+<nav class="bg-gray-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <span class="text-white font-bold text-xl">AI众筹管理后台</span>
+                </div>
+            </div>
+            <div class="flex items-center">
+                <div class="text-sm font-medium text-white">{{ admin.username }}</div>
+                <a href="{{ url_for('admin.logout') }}" class="ml-4 text-sm text-gray-300 hover:text-white">退出登录</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="flex h-screen bg-gray-100">
+    <!-- 侧边栏 -->
+    <div class="w-64 bg-gray-800">
+        <nav class="mt-5 px-2">
+            <a href="{{ url_for('admin.dashboard') }}"
+               class="group flex items-center px-2 py-2 text-base leading-6 font-medium rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:text-white focus:bg-gray-700 transition ease-in-out duration-150 {{ 'bg-gray-900' if request.endpoint == 'admin.dashboard' }}">
+                <svg class="mr-4 h-6 w-6 text-gray-400 group-hover:text-gray-300" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                仪表盘
+            </a>
+
+            {% if admin.has_role('admin') %}
+                <a href="{{ url_for('admin.projects') }}"
+                   class="mt-1 group flex items-center px-2 py-2 text-base leading-6 font-medium rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:text-white focus:bg-gray-700 transition ease-in-out duration-150 {{ 'bg-gray-900' if request.endpoint == 'admin.projects' }}">
+                    <svg class="mr-4 h-6 w-6 text-gray-400 group-hover:text-gray-300" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                    项目管理
+                </a>
+
+            {% endif %}
+
+            {% if admin.has_role('admin') or admin.has_role('agent') %}
+                <a href="{{ url_for('admin.users') }}"
+                   class="mt-1 group flex items-center px-2 py-2 text-base leading-6 font-medium rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:text-white focus:bg-gray-700 transition ease-in-out duration-150 {{ 'bg-gray-900' if request.endpoint == 'admin.users' }}">
+                    <svg class="mr-4 h-6 w-6 text-gray-400 group-hover:text-gray-300" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                    用户管理
+                </a>
+            {% endif %}
+
+            {% if admin.has_role('admin') %}
+                <a href="{{ url_for('admin.agents') }}"
+                   class="mt-1 group flex items-center px-2 py-2 text-base leading-6 font-medium rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:text-white focus:bg-gray-700 transition ease-in-out duration-150 {{ 'bg-gray-900' if request.endpoint == 'admin.agents' }}">
+                    <svg class="mr-4 h-6 w-6 text-gray-400 group-hover:text-gray-300" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    代理管理
+                </a>
+
+                <div class="mt-1">
+                    <a href="{{ url_for('admin.withdrawals') }}"
+                       class="group flex items-center px-2 py-2 text-base leading-6 font-medium rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:text-white focus:bg-gray-700 transition ease-in-out duration-150 {{ 'bg-gray-900' if request.endpoint == 'admin.withdrawals' }}">
+                        <svg class="mr-4 h-6 w-6 text-gray-400 group-hover:text-gray-300" fill="none"
+                             viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        提现管理
+                    </a>
+                </div>
+
+                <div class="mt-1">
+                    <a href="{{ url_for('admin.recharges') }}"
+                       class="group flex items-center px-2 py-2 text-base leading-6 font-medium rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:text-white focus:bg-gray-700 transition ease-in-out duration-150 {{ 'bg-gray-900' if request.endpoint == 'admin.recharges' }}">
+                        <svg class="mr-4 h-6 w-6 text-gray-400 group-hover:text-gray-300" fill="none"
+                             viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        充值管理
+                    </a>
+                </div>
+
+                <div class="mt-1">
+                    <a href="{{ url_for('admin.withdraw_config') }}"
+                       class="group flex items-center px-2 py-2 text-base leading-6 font-medium rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:text-white focus:bg-gray-700 transition ease-in-out duration-150 {{ 'bg-gray-900' if request.endpoint == 'admin.withdraw_config' }}">
+                        <svg class="mr-4 h-6 w-6 text-gray-400 group-hover:text-gray-300" fill="none"
+                             viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        提现配置
+                    </a>
+                </div>
+
+                <div class="mt-1">
+                    <a href="{{ url_for('admin.referral_rates') }}"
+                       class="group flex items-center px-2 py-2 text-base leading-6 font-medium rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:text-white focus:bg-gray-700 transition ease-in-out duration-150 {{ 'bg-gray-900' if request.endpoint == 'admin.referral_rates' }}">
+                        <svg class="mr-4 h-6 w-6 text-gray-400 group-hover:text-gray-300" fill="none"
+                             viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                        分销比例
+                    </a>
+                </div>
+
+                <div class="mt-1">
+                    <a href="{{ url_for('admin.hierarchy') }}"
+                       class="group flex items-center px-2 py-2 text-base leading-6 font-medium rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:text-white focus:bg-gray-700 transition ease-in-out duration-150 {{ 'bg-gray-900' if request.endpoint == 'admin.hierarchy' }}">
+                        <svg class="mr-4 h-6 w-6 text-gray-400 group-hover:text-gray-300" fill="none"
+                             viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                        </svg>
+                        层级管理
+                    </a>
+                </div>
+                <a href="{{ url_for('admin.ai_models') }}"
+                   class="mt-1 group flex items-center px-2 py-2 text-base leading-6 font-medium rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:text-white focus:bg-gray-700 transition ease-in-out duration-150 {{ 'bg-gray-900' if request.endpoint == 'admin.ai_models' }}">
+                    <svg class="mr-4 h-6 w-6 text-gray-400 group-hover:text-gray-300" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                    模型管理
+                </a>
+            {% endif %}
+
+            {% if admin.has_role('agent') %}
+                <div class="mt-1">
+                    <a href="{{ url_for('admin.staff') }}"
+                       class="group flex items-center px-2 py-2 text-base leading-6 font-medium rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:text-white focus:bg-gray-700 transition ease-in-out duration-150 {{ 'bg-gray-900' if request.endpoint == 'admin.staff' }}">
+                        <svg class="mr-4 h-6 w-6 text-gray-400 group-hover:text-gray-300" fill="none"
+                             viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        员工管理
+                    </a>
+                </div>
+                <div class="mt-1">
+                    <a href="{{ url_for('admin.assign_customers') }}"
+                       class="group flex items-center px-2 py-2 text-base leading-6 font-medium rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:text-white focus:bg-gray-700 transition ease-in-out duration-150 {{ 'bg-gray-900' if request.endpoint == 'admin.assign_customers' }}">
+                        <svg class="mr-4 h-6 w-6 text-gray-400 group-hover:text-gray-300" fill="none"
+                             viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        分配客户
+                    </a>
+                </div>
+            {% endif %}
+
+            {% if admin.has_role('staff') %}
+                <div class="mt-1">
+                    <a href="{{ url_for('admin.my_customers') }}"
+                       class="group flex items-center px-2 py-2 text-base leading-6 font-medium rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:text-white focus:bg-gray-700 transition ease-in-out duration-150 {{ 'bg-gray-900' if request.endpoint == 'admin.my_customers' }}">
+                        <svg class="mr-4 h-6 w-6 text-gray-400 group-hover:text-gray-300" fill="none"
+                             viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        我的客户
+                    </a>
+                </div>
+            {% endif %}
+        </nav>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="flex-1 overflow-auto">
+        <main class="py-6">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                {% if admin.has_role('admin') and request.endpoint in ['admin.users', 'admin.staff', 'admin.agents', 'admin.projects', 'admin.recharges', 'admin.withdrawals'] or
+                    (admin.has_role('agent') and request.endpoint in ['admin.users', 'admin.staff', 'admin.my_customers']) %}
+                    <div class="mb-4 flex justify-end">
+                        <a href="{{ url_for('admin.export_data', type=request.endpoint.split('.')[-1]) }}"
+                           class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                            导出数据
+                        </a>
+                    </div>
+                {% endif %}
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="mb-4 rounded-md p-4 {% if category == 'error' %}bg-red-50{% else %}bg-green-50{% endif %}">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        {% if category == 'error' %}
+                                            <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg"
+                                                 viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                                      clip-rule="evenodd"/>
+                                            </svg>
+                                        {% else %}
+                                            <svg class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg"
+                                                 viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                      clip-rule="evenodd"/>
+                                            </svg>
+                                        {% endif %}
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm font-medium {% if category == 'error' %}text-red-800{% else %}text-green-800{% endif %}">
+                                            {{ message }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+</div>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

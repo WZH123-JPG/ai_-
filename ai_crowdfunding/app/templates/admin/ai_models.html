@@ -1,0 +1,73 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-semibold">AI模型管理</h1>
+        <a href="{{ url_for('admin.add_ai_model') }}" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+            添加模型
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">模型名称</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">基础URL</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">API密钥</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">模型类型</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for model in models.items %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ model.id }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ model.model_name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ model.base_url }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ model.api_key[:8] }}...</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ model.ai_model }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ model.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <a href="{{ url_for('admin.edit_ai_model', model_id=model.id) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">编辑</a>
+                        {% if model.is_active %}
+                        <a href="#" onclick="if(confirm('确定要禁用这个模型吗？')) { window.location.href='{{ url_for('admin.toggle_ai_model', model_id=model.id) }}'; }" class="text-red-600 hover:text-red-900">禁用</a>
+                        {% else %}
+                        <a href="#" onclick="if(confirm('确定要启用这个模型吗？')) { window.location.href='{{ url_for('admin.toggle_ai_model', model_id=model.id) }}'; }" class="text-green-600 hover:text-green-900">启用</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页 -->
+    {% if models.pages > 1 %}
+    <div class="mt-4 flex justify-center">
+        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+            {% if models.has_prev %}
+            <a href="{{ url_for('admin.ai_models', page=models.prev_num) }}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                上一页
+            </a>
+            {% endif %}
+            
+            {% for page in range(1, models.pages + 1) %}
+            <a href="{{ url_for('admin.ai_models', page=page) }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium {% if page == models.page %}text-blue-600 bg-blue-50{% else %}text-gray-700 hover:bg-gray-50{% endif %}">
+                {{ page }}
+            </a>
+            {% endfor %}
+
+            {% if models.has_next %}
+            <a href="{{ url_for('admin.ai_models', page=models.next_num) }}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                下一页
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

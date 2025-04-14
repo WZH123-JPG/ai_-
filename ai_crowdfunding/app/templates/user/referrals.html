@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-16">
+    <!-- 顶部状态栏 -->
+    <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white">
+        <div class="px-4 pt-12 pb-6">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold">邀请好友</h1>
+                <div class="relative">
+                    <button class="p-2 hover:bg-white hover:bg-opacity-10 rounded-full">
+                        <i class="fas fa-question-circle text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 邀请码卡片 -->
+            <div class="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-4 shadow-lg">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="text-sm opacity-90">我的邀请码</div>
+                    <div id="copyTip" onclick="copyToClipboard('{{ current_user.referral_code }}', this)" class="px-3 py-1 bg-white bg-opacity-20 rounded-full text-xs backdrop-blur-lg cursor-pointer transition-all duration-300">
+                        点击复制
+                    </div>
+                </div>
+                <div class="text-3xl font-bold mb-4 tracking-wider select-all">
+                    {{ current_user.referral_code }}
+                </div>
+                <div class="text-sm opacity-75">
+                    已邀请 <span class="font-semibold">{{ referral_count }}</span> 位好友加入
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="px-4 -mt-4">
+        <!-- 收益统计卡片 -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm mb-6">
+            <div class="grid grid-cols-3 gap-4">
+                <div class="text-center">
+                    <div class="text-lg font-bold text-gray-900">¥{{ "%.2f"|format(total_earnings) }}</div>
+                    <div class="text-xs text-gray-500 mt-1">累计收益</div>
+                </div>
+                <div class="text-center border-l border-r border-gray-100">
+                    <div class="text-lg font-bold text-gray-900">¥{{ "%.2f"|format(today_earnings) }}</div>
+                    <div class="text-xs text-gray-500 mt-1">今日收益</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-lg font-bold text-gray-900">{{ total_referrals }}</div>
+                    <div class="text-xs text-gray-500 mt-1">团队人数</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分销等级说明 -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm mb-6">
+            <h2 class="text-lg font-bold text-gray-900 mb-4">分销规则</h2>
+            <div class="space-y-4">
+                <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm font-medium text-gray-900">一级好友</div>
+                        <div class="text-xs text-gray-500 mt-1">直推好友投资收益的{{ "%.1f"|format(level1_rate * 100) }}%</div>
+                    </div>
+                </div>
+                <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-user-friends text-white"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm font-medium text-gray-900">二级好友</div>
+                        <div class="text-xs text-gray-500 mt-1">间推好友投资收益的{{ "%.1f"|format(level2_rate * 100) }}%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 我的团队 -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-gray-900">我的团队</h2>
+            </div>
+            
+            {% if referrals %}
+            <div class="space-y-6">
+                {% for level1 in referrals %}
+                <!-- 一级好友 -->
+                <div class="relative">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full overflow-hidden">
+                                {% if level1.avatar_path %}
+                                    <img src="{{ url_for('static', filename='uploads/' + level1.avatar_path) }}" 
+                                         alt="{{ level1.username }}"
+                                         class="w-full h-full object-cover">
+                                {% else %}
+                                    <div class="w-full h-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
+                                        <i class="fas fa-user text-white"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium text-gray-900">{{ level1.username }}</div>
+                                <div class="text-xs text-gray-500">加入时间：{{ level1.created_at.strftime('%Y-%m-%d') }}</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm font-medium text-gray-900">¥{{ "%.2f"|format(level1.total_investment) }}</div>
+                            <div class="text-xs text-gray-500">累计投资</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 二级好友列表 -->
+                    {% if level1.children %}
+                    <div class="ml-8 mt-2 space-y-2 relative before:absolute before:left-0 before:top-0 before:bottom-0 before:w-px before:bg-gray-200">
+                        {% for level2 in level1.children %}
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl relative before:absolute before:left-[-1rem] before:top-1/2 before:w-3 before:h-px before:bg-gray-200">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 rounded-full overflow-hidden">
+                                    {% if level2.avatar_path %}
+                                        <img src="{{ url_for('static', filename='uploads/' + level2.avatar_path) }}" 
+                                             alt="{{ level2.username }}"
+                                             class="w-full h-full object-cover">
+                                    {% else %}
+                                        <div class="w-full h-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                                            <i class="fas fa-user text-white text-sm"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">{{ level2.username }}</div>
+                                    <div class="text-xs text-gray-500">加入时间：{{ level2.created_at.strftime('%Y-%m-%d') }}</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-medium text-gray-900">¥{{ "%.2f"|format(level2.total_investment) }}</div>
+                                <div class="text-xs text-gray-500">累计投资</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <div class="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <i class="fas fa-users text-2xl text-gray-400"></i>
+                </div>
+                <p class="text-gray-500 mb-4">暂无团队成员</p>
+                <button onclick="copyToClipboard('{{ current_user.referral_code }}', null)" 
+                        class="px-6 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full text-sm font-medium">
+                    复制邀请码
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 底部导航栏 -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50">
+        <div class="flex justify-around items-center h-16">
+            <a href="/" class="flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors duration-200">
+                <i class="fas fa-home text-xl"></i>
+                <span class="text-xs mt-1">首页</span>
+            </a>
+            <a href="{{ url_for('user.investments') if current_user.is_authenticated else url_for('auth.login') }}" 
+               class="flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors duration-200">
+                <i class="fas fa-chart-line text-xl"></i>
+                <span class="text-xs mt-1">投资</span>
+            </a>
+            <a href="{{ url_for('user.referrals') if current_user.is_authenticated else url_for('auth.login') }}" 
+               class="flex flex-col items-center justify-center text-indigo-600">
+                <i class="fas fa-users text-xl"></i>
+                <span class="text-xs mt-1">邀请</span>
+            </a>
+            <a href="{{ url_for('user.profile') if current_user.is_authenticated else url_for('auth.login') }}" 
+               class="flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors duration-200">
+                <i class="fas fa-user text-xl"></i>
+                <span class="text-xs mt-1">我的</span>
+            </a>
+        </div>
+    </nav>
+</div>
+
+<script>
+function copyToClipboard(text, tipElement) {
+    navigator.clipboard.writeText(text).then(function() {
+        if (tipElement) {
+            // 更新提示文本和样式
+            tipElement.textContent = '复制成功';
+            tipElement.classList.add('bg-green-500', 'text-white');
+            
+            // 2秒后恢复原样
+            setTimeout(() => {
+                tipElement.textContent = '点击复制';
+                tipElement.classList.remove('bg-green-500', 'text-white');
+            }, 2000);
+        } else {
+            // 创建一个临时的提示元素
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-full text-sm shadow-lg z-50 transition-opacity duration-300';
+            toast.textContent = '邀请码已复制';
+            document.body.appendChild(toast);
+            
+            // 2秒后移除提示
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 2000);
+        }
+    }).catch(function(err) {
+        console.error('复制失败:', err);
+        // 显示错误提示
+        const errorToast = document.createElement('div');
+        errorToast.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded-full text-sm shadow-lg z-50';
+        errorToast.textContent = '复制失败，请手动复制';
+        document.body.appendChild(errorToast);
+        
+        setTimeout(() => {
+            errorToast.style.opacity = '0';
+            setTimeout(() => {
+                document.body.removeChild(errorToast);
+            }, 300);
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}

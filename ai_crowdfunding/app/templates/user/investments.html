@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-16">
+    <!-- 顶部状态栏 -->
+    <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white">
+        <div class="px-4 pt-12 pb-8">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center">
+                    <a href="{{ url_for('user.profile') }}" class="mr-3">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <h1 class="text-xl font-bold">我的投资</h1>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="px-4 py-4">
+        <!-- 分页设置 -->
+        <div class="bg-white rounded-xl p-4 mb-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div class="text-sm text-gray-600">每页显示：</div>
+                <div class="flex space-x-2">
+                    <button onclick="changePageSize(5)" 
+                            class="page-size-btn px-3 py-1 rounded-md text-sm" 
+                            data-size="5">5条</button>
+                    <button onclick="changePageSize(10)" 
+                            class="page-size-btn px-3 py-1 rounded-md text-sm" 
+                            data-size="10">10条</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 投资列表 -->
+        <div class="space-y-4" id="investment-list">
+            {% for investment in investments %}
+            <div class="bg-white rounded-xl p-4 shadow-sm">
+                <div class="flex space-x-4">
+                    <!-- 项目图片 -->
+                    <div class="flex-shrink-0">
+                        <img src="{{ url_for('static', filename='uploads/' + investment.project.image_path) }}" 
+                             alt="{{ investment.project.name }}"
+                             class="w-20 h-20 object-cover rounded-lg shadow-sm">
+                    </div>
+                    
+                    <!-- 项目信息 -->
+                    <div class="flex-1">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h3 class="text-base font-bold text-gray-900">{{ investment.project.name }}</h3>
+                                <p class="text-sm text-gray-500">投资时间：{{ investment.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                            </div>
+                            <div class="px-2 py-1 rounded-full text-xs font-medium
+                                {% if investment.project.status == 'active' %}bg-green-100 text-green-800
+                                {% elif investment.project.status == 'completed' %}bg-blue-100 text-blue-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ {'active': '进行中', 'completed': '已完成', 'ended': '已结束'}.get(investment.project.status, investment.project.status) }}
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-3 gap-4 text-center">
+                            <div>
+                                <div class="text-sm text-gray-500">投资份数</div>
+                                <div class="text-lg font-semibold text-gray-900">{{ investment.shares }}份</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">投资金额</div>
+                                <div class="text-lg font-semibold text-gray-900">¥{{ "%.2f"|format(investment.amount) }}</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">日收益</div>
+                                <div class="text-lg font-semibold text-green-600">¥{{ "%.2f"|format(investment.daily_profit) }}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 text-right">
+                            <a href="{{ url_for('project.project_detail', id=investment.project_id) }}" 
+                               class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
+                                查看详情<i class="fas fa-chevron-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 分页导航 -->
+        <div class="mt-6 bg-white rounded-xl p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <button onclick="previousPage()" 
+                        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        id="prev-btn">
+                    上一页
+                </button>
+                <span class="text-sm text-gray-600" id="page-info">第 <span id="current-page">1</span> 页</span>
+                <button onclick="nextPage()" 
+                        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        id="next-btn">
+                    下一页
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+let currentPage = 1;
+let pageSize = 5;
+let investments = [];
+
+// 初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 获取所有投资记录
+    const investmentDivs = document.querySelectorAll('#investment-list > div');
+    investments = Array.from(investmentDivs);
+    
+    // 设置默认页大小按钮样式
+    updatePageSizeButtons();
+    
+    // 显示第一页数据
+    showPage(1);
+});
+
+// 更改每页显示条数
+function changePageSize(size) {
+    pageSize = size;
+    currentPage = 1;
+    updatePageSizeButtons();
+    showPage(1);
+}
+
+// 更新页大小按钮样式
+function updatePageSizeButtons() {
+    document.querySelectorAll('.page-size-btn').forEach(btn => {
+        const size = parseInt(btn.dataset.size);
+        if (size === pageSize) {
+            btn.classList.add('bg-indigo-100', 'text-indigo-700', 'font-medium');
+            btn.classList.remove('text-gray-700', 'hover:bg-gray-100');
+        } else {
+            btn.classList.remove('bg-indigo-100', 'text-indigo-700', 'font-medium');
+            btn.classList.add('text-gray-700', 'hover:bg-gray-100');
+        }
+    });
+}
+
+// 显示指定页的数据
+function showPage(page) {
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const maxPage = Math.ceil(investments.length / pageSize);
+
+    // 隐藏所有投资记录
+    investments.forEach(inv => inv.style.display = 'none');
+    
+    // 显示当前页的投资记录
+    investments.slice(startIndex, endIndex).forEach(inv => inv.style.display = 'block');
+
+    // 更新页码信息
+    document.getElementById('current-page').textContent = page;
+    
+    // 更新按钮状态
+    document.getElementById('prev-btn').disabled = page === 1;
+    document.getElementById('next-btn').disabled = page === maxPage;
+
+    // 如果没有数据，显示提示信息
+    if (investments.length === 0) {
+        const noDataDiv = document.createElement('div');
+        noDataDiv.className = 'text-center py-8 text-gray-500';
+        noDataDiv.textContent = '暂无投资记录';
+        document.getElementById('investment-list').appendChild(noDataDiv);
+    }
+}
+
+// 上一页
+function previousPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        showPage(currentPage);
+    }
+}
+
+// 下一页
+function nextPage() {
+    const maxPage = Math.ceil(investments.length / pageSize);
+    if (currentPage < maxPage) {
+        currentPage++;
+        showPage(currentPage);
+    }
+}
+</script>
+{% endblock %}

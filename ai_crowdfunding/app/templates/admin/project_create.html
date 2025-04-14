@@ -1,0 +1,155 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-6">
+        <a href="{{ url_for('admin.projects') }}" class="text-blue-600 hover:text-blue-800">
+            <i class="fas fa-arrow-left mr-2"></i>返回项目列表
+        </a>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <div class="p-6">
+            <h2 class="text-xl font-bold mb-6">创建新项目</h2>
+            
+            <form method="POST" enctype="multipart/form-data" class="space-y-6">
+                {{ form.csrf_token }}
+                <div class="grid grid-cols-1 gap-6">
+                    <!-- 项目图片上传 -->
+                    <div>
+                        <label for="image" class="block text-sm font-medium text-gray-700">项目图片</label>
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-500 transition-colors duration-200">
+                            <div class="space-y-1 text-center">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <div class="flex text-sm text-gray-600">
+                                    <label for="image" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                        <span>选择图片</span>
+                                        <input id="image" name="image" type="file" class="sr-only" accept="image/*" required>
+                                    </label>
+                                    <p class="pl-1">或拖放图片到此处</p>
+                                </div>
+                                <p class="text-xs text-gray-500">PNG, JPG, JPEG 格式</p>
+                            </div>
+                        </div>
+                        <div id="image-preview" class="mt-2 hidden">
+                            <img src="" alt="预览图" class="h-48 w-48 object-cover rounded-lg border border-gray-300">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700">项目名称</label>
+                        {{ form.name(class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500") }}
+                    </div>
+
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700">项目描述</label>
+                        {{ form.description(class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500", rows="4") }}
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label for="target_amount" class="block text-sm font-medium text-gray-700">目标金额</label>
+                            <div class="mt-1 relative rounded-md shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">¥</span>
+                                </div>
+                                {{ form.target_amount(class="pl-7 block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500", type="number", step="0.01", min="0") }}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="total_shares" class="block text-sm font-medium text-gray-700">总份数</label>
+                            <div class="mt-1 relative rounded-md shadow-sm">
+                                {{ form.total_shares(class="block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500", type="number", min="1", step="1") }}
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">份</span>
+                                </div>
+                            </div>
+                            <p class="mt-1 text-sm text-gray-500">修改总份数会自动计算每份金额</p>
+                        </div>
+
+                        <div>
+                            <label for="share_price" class="block text-sm font-medium text-gray-700">每份金额（自动计算）</label>
+                            <div class="mt-1 relative rounded-md shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">¥</span>
+                                </div>
+                                {{ form.share_price(class="pl-7 block w-full rounded-md border-gray-300 bg-gray-50 cursor-not-allowed", readonly=true) }}
+                            </div>
+                            <p class="mt-1 text-sm text-gray-500">每份金额 = 目标金额 ÷ 总份数</p>
+                        </div>
+
+                        <div>
+                            <label for="daily_roi" class="block text-sm font-medium text-gray-700">日收益率(%)</label>
+                            {{ form.daily_roi(class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500", type="number", step="0.01", min="0") }}
+                        </div>
+
+                        <div>
+                            <label for="end_date" class="block text-sm font-medium text-gray-700">结束日期</label>
+                            {{ form.end_date(class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500", type="date") }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4">
+                    <a href="{{ url_for('admin.projects') }}"
+                       class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
+                        取消
+                    </a>
+                    {{ form.submit(class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 设置日期选择器的最小值为今天
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('end_date').min = today;
+
+    // 自动计算每份金额
+    function calculateSharePrice() {
+        const targetAmount = parseFloat(document.getElementById('target_amount').value) || 0;
+        const totalShares = parseInt(document.getElementById('total_shares').value) || 1;
+        
+        if (targetAmount > 0 && totalShares > 0) {
+            const sharePrice = (targetAmount / totalShares).toFixed(2);
+            document.getElementById('share_price').value = sharePrice;
+        }
+    }
+
+    // 添加总份数输入验证
+    document.getElementById('total_shares').addEventListener('input', function(e) {
+        const value = parseInt(e.target.value);
+        if (value < 1) {
+            e.target.value = 1;
+        }
+        calculateSharePrice();
+    });
+
+    // 目标金额变化时重新计算
+    document.getElementById('target_amount').addEventListener('input', calculateSharePrice);
+
+    // 初始计算
+    calculateSharePrice();
+});
+
+// 图片预览功能
+document.getElementById('image').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('image-preview');
+            preview.querySelector('img').src = e.target.result;
+            preview.classList.remove('hidden');
+        }
+        reader.readAsDataURL(file);
+    }
+});
+</script>
+{% endblock %}

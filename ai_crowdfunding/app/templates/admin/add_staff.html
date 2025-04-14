@@ -1,0 +1,86 @@
+{% extends "admin/base.html" %}
+
+{% block breadcrumb %}
+<li>
+    <div class="flex items-center">
+        <a href="{{ url_for('admin.staff') }}" class="text-gray-500 hover:text-gray-700">员工管理</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <svg class="flex-shrink-0 w-6 h-full text-gray-200" viewBox="0 0 24 44" preserveAspectRatio="none" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M.293 0l22 22-22 22h1.414l22-22-22-22H.293z" />
+        </svg>
+        <span class="ml-4 text-gray-500">添加员工</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-8">
+    <!-- 页面标题 -->
+    <div>
+        <h2 class="text-2xl font-bold text-gray-900">添加新员工</h2>
+        <p class="mt-1 text-sm text-gray-500">
+            请填写新员工的基本信息。员工账户创建后，可以管理自己发展的客户。
+        </p>
+    </div>
+
+    <!-- 表单 -->
+    <div class="px-4 py-5 sm:p-6">
+        <form method="post" class="space-y-6">
+            {{ form.csrf_token }}
+            <div class="grid grid-cols-1 gap-6">
+                <!-- 用户名 -->
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700">
+                        用户名 <span class="text-red-500">*</span>
+                    </label>
+                    <div class="mt-1">
+                        <input type="text" name="username" id="username" required
+                               class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                               placeholder="请输入用户名">
+                    </div>
+                </div>
+
+                <!-- 密码 -->
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">
+                        密码 <span class="text-red-500">*</span>
+                    </label>
+                    <div class="mt-1">
+                        <input type="password" name="password" id="password" required
+                               class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                               placeholder="请输入密码">
+                    </div>
+                </div>
+
+                <!-- 邮箱 -->
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">
+                        邮箱
+                    </label>
+                    <div class="mt-1">
+                        <input type="email" name="email" id="email"
+                               class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                               placeholder="请输入邮箱地址">
+                    </div>
+                    <p class="mt-2 text-sm text-gray-500">选填，用于接收系统通知</p>
+                </div>
+
+                <!-- 提交按钮 -->
+                <div class="flex justify-end space-x-4">
+                    <a href="{{ url_for('admin.staff') }}"
+                       class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        取消
+                    </a>
+                    <button type="submit"
+                            class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        添加员工
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %} 

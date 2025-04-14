@@ -1,0 +1,149 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold">分配客户</h2>
+    </div>
+
+    <!-- 搜索表单 -->
+    <div class="bg-white shadow-md rounded-lg p-4 mb-6">
+        <form action="{{ url_for('admin.assign_customers') }}" method="GET" class="flex items-center space-x-4">
+            <div class="flex-1">
+                <label for="username" class="sr-only">用户名</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-gray-400"></i>
+                    </div>
+                    <input type="text" name="username" id="username" 
+                           value="{{ username }}"
+                           class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                           placeholder="搜索用户名">
+                </div>
+            </div>
+            
+            <button type="submit" 
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                搜索
+            </button>
+            {% if username %}
+            <a href="{{ url_for('admin.assign_customers') }}" 
+               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                清除
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- 客户列表 -->
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户名</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">注册时间</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分配给员工</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for user in users.items %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{ user.username }}</div>
+                            <div class="text-sm text-gray-500">{{ user.email }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ user.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <form action="{{ url_for('admin.assign_customer', user_id=user.id) }}" method="POST" class="flex items-center space-x-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <select name="staff_id" class="block w-48 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    {% for staff in staff_list %}
+                                    <option value="{{ staff.id }}">{{ staff.username }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" 
+                                        class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    分配
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页 -->
+        {% if users.pages > 1 %}
+        <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {% if users.has_prev %}
+                <a href="{{ url_for('admin.assign_customers', page=users.prev_num, username=username) }}" 
+                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    上一页
+                </a>
+                {% endif %}
+                {% if users.has_next %}
+                <a href="{{ url_for('admin.assign_customers', page=users.next_num, username=username) }}" 
+                   class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    下一页
+                </a>
+                {% endif %}
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        显示第 
+                        <span class="font-medium">{{ users.page }}</span>
+                        页，共
+                        <span class="font-medium">{{ users.pages }}</span>
+                        页
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        {% if users.has_prev %}
+                        <a href="{{ url_for('admin.assign_customers', page=users.prev_num, username=username) }}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <span class="sr-only">上一页</span>
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                        {% endif %}
+                        
+                        {% for page in users.iter_pages() %}
+                            {% if page %}
+                                {% if page != users.page %}
+                                <a href="{{ url_for('admin.assign_customers', page=page, username=username) }}" 
+                                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    {{ page }}
+                                </a>
+                                {% else %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
+                                    {{ page }}
+                                </span>
+                                {% endif %}
+                            {% else %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                    ...
+                                </span>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if users.has_next %}
+                        <a href="{{ url_for('admin.assign_customers', page=users.next_num, username=username) }}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <span class="sr-only">下一页</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

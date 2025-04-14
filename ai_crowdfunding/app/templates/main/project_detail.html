@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+        <!-- 项目基本信息 -->
+        <div class="p-6">
+            <h1 class="text-3xl font-bold mb-4">{{ project.name }}</h1>
+            
+            <!-- 项目状态和进度 -->
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="text-2xl font-bold text-blue-600">
+                        ¥{{ "%.2f"|format(project.current_amount) }}
+                        <span class="text-sm text-gray-500">/ ¥{{ "%.2f"|format(project.target_amount) }}</span>
+                    </div>
+                    <span class="px-3 py-1 text-sm rounded-full 
+                        {% if project.status == 'active' %}bg-green-100 text-green-800
+                        {% elif project.status == 'completed' %}bg-blue-100 text-blue-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ {'active': '募集中', 'completed': '已完成', 'failed': '未达标'}[project.status] }}
+                    </span>
+                </div>
+                
+                {% set progress = (project.current_amount / project.target_amount * 100)|round|int %}
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    <div class="bg-blue-600 h-2.5 rounded-full" style="width: {{ progress }}%"></div>
+                </div>
+                <div class="flex justify-between text-sm text-gray-500 mt-1">
+                    <span>进度 {{ progress }}%</span>
+                    <span>剩余 {{ project.available_shares }} 份</span>
+                </div>
+            </div>
+
+            <!-- 项目详细信息 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">投资详情</h3>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">每份金额</span>
+                            <span class="font-medium">¥{{ "%.2f"|format(project.share_price) }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">日收益率</span>
+                            <span class="font-medium text-green-600">{{ "%.1f"|format(project.daily_roi) }}%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">总份数</span>
+                            <span class="font-medium">{{ project.total_shares }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">结束时间</span>
+                            <span class="font-medium">{{ project.end_date.strftime('%Y-%m-%d') }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">项目描述</h3>
+                    <p class="text-gray-700">{{ project.description }}</p>
+                </div>
+            </div>
+
+            <!-- 投资按钮 -->
+            {% if project.status == 'active' and project.available_shares > 0 %}
+            <div class="mt-6">
+                <form method="POST" action="{{ url_for('main.invest', project_id=project.id) }}" class="flex gap-4">
+                    <div class="flex-1">
+                        <label for="shares" class="block text-sm font-medium text-gray-700 mb-1">投资份数</label>
+                        <input type="number" name="shares" id="shares" min="1" max="{{ project.available_shares }}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                               required>
+                    </div>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 self-end">
+                        立即投资
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 投资记录 -->
+        <div class="border-t border-gray-200">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold mb-4">投资记录</h3>
+                {% if project.investments %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">投资人</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">投资金额</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">投资份数</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">投资时间</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for investment in project.investments %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">{{ investment.user.username }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">¥{{ "%.2f"|format(investment.amount) }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">{{ investment.shares }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ investment.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-4">暂无投资记录</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

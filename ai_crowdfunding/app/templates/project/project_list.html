@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-16">
+    <!-- 顶部状态栏 -->
+    <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white">
+        <div class="px-4 pt-12 pb-6">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('main.index') }}" class="text-white hover:text-gray-200">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <h1 class="text-2xl font-bold">项目列表</h1>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选和排序 -->
+    <div class="px-4 py-4 bg-white shadow-sm">
+        <div class="flex justify-between items-center">
+            <!-- 状态筛选 -->
+            <div class="flex space-x-2">
+                <a href="{{ url_for('project.project_list', status='all', sort=current_sort) }}" 
+                   class="px-3 py-1 rounded-full text-sm {% if current_status == 'all' %}bg-indigo-100 text-indigo-600{% else %}bg-gray-100 text-gray-600{% endif %}">
+                    全部
+                </a>
+                <a href="{{ url_for('project.project_list', status='active', sort=current_sort) }}"
+                   class="px-3 py-1 rounded-full text-sm {% if current_status == 'active' %}bg-indigo-100 text-indigo-600{% else %}bg-gray-100 text-gray-600{% endif %}">
+                    募集中
+                </a>
+                <a href="{{ url_for('project.project_list', status='completed', sort=current_sort) }}"
+                   class="px-3 py-1 rounded-full text-sm {% if current_status == 'completed' %}bg-indigo-100 text-indigo-600{% else %}bg-gray-100 text-gray-600{% endif %}">
+                    已完成
+                </a>
+            </div>
+
+            <!-- 排序选项 -->
+            <div class="flex space-x-2">
+                <a href="{{ url_for('project.project_list', status=current_status, sort='latest') }}"
+                   class="px-3 py-1 rounded-full text-sm {% if current_sort == 'latest' %}bg-indigo-100 text-indigo-600{% else %}bg-gray-100 text-gray-600{% endif %}">
+                    最新
+                </a>
+                <a href="{{ url_for('project.project_list', status=current_status, sort='roi') }}"
+                   class="px-3 py-1 rounded-full text-sm {% if current_sort == 'roi' %}bg-indigo-100 text-indigo-600{% else %}bg-gray-100 text-gray-600{% endif %}">
+                    收益率
+                </a>
+                <a href="{{ url_for('project.project_list', status=current_status, sort='amount') }}"
+                   class="px-3 py-1 rounded-full text-sm {% if current_sort == 'amount' %}bg-indigo-100 text-indigo-600{% else %}bg-gray-100 text-gray-600{% endif %}">
+                    金额
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 项目列表 -->
+    <div class="px-4 py-6">
+        <div class="space-y-4">
+            {% for project in projects %}
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+                <div class="flex space-x-4">
+                    <!-- 项目图片 -->
+                    <div class="flex-shrink-0">
+                        <img src="{{ url_for('static', filename='uploads/' + project.image_path) }}" 
+                             alt="{{ project.name }}"
+                             class="w-24 h-24 object-cover rounded-xl">
+                    </div>
+                    
+                    <!-- 项目信息 -->
+                    <div class="flex-1">
+                        <div class="flex items-start justify-between mb-2">
+                            <div>
+                                <h3 class="text-base font-bold text-gray-900">{{ project.name }}</h3>
+                                <p class="text-sm text-gray-500 mt-1 line-clamp-2">{{ project.description }}</p>
+                            </div>
+                            <span class="px-2 py-1 rounded-full text-xs font-medium 
+                                {% if project.status == 'active' %}bg-green-100 text-green-800
+                                {% elif project.status == 'completed' %}bg-blue-100 text-blue-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ {'active': '募集中', 'completed': '已完成', 'failed': '未达标'}[project.status] }}
+                            </span>
+                        </div>
+
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <div class="text-xs text-gray-500">目标金额</div>
+                                <div class="text-sm font-bold text-gray-900">¥{{ "%.2f"|format(project.target_amount) }}</div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-gray-500">每份金额</div>
+                                <div class="text-sm font-bold text-gray-900">¥{{ "%.2f"|format(project.share_price) }}</div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-gray-500">日收益率</div>
+                                <div class="text-sm font-bold text-green-600">{{ "%.1f"|format(project.daily_roi * 100) }}%</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            {% set progress = ((project.total_shares - project.remaining_shares) / project.total_shares * 100)|round %}
+                            <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                <span>已募集 {{ progress }}%</span>
+                                <span>剩余 {{ project.remaining_shares }} 份</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5">
+                                <div class="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full transition-all duration-500"
+                                     style="width: {{ progress }}%"></div>
+                            </div>
+                        </div>
+
+                        <a href="{{ url_for('project.project_detail', id=project.id) }}" 
+                           class="block w-full text-center py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-medium rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                            立即投资
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-white rounded-2xl p-8 text-center">
+                <div class="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <i class="fas fa-inbox text-2xl text-gray-400"></i>
+                </div>
+                <h3 class="text-base font-medium text-gray-900 mb-2">暂无项目</h3>
+                <p class="text-sm text-gray-500">当前没有符合条件的项目</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-16">
+    <!-- 顶部状态栏 -->
+    <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white">
+        <div class="px-4 pt-12 pb-20">
+            <div class="flex items-center space-x-4 mb-4">
+                <a href="{{ url_for('main.index') if source == 'index' else url_for('project.project_list', status=request.args.get('status', 'active'), sort=request.args.get('sort', 'latest')) }}" 
+                   class="text-white hover:text-gray-200">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </a>
+                <h1 class="text-xl font-bold truncate flex-1">{{ project.name }}</h1>
+                <button class="text-white hover:text-gray-200">
+                    <i class="fas fa-share-alt text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- 项目图片 -->
+            <div class="mt-4 -mb-16 relative z-10">
+                <img src="{{ url_for('static', filename='uploads/' + project.image_path) }}" 
+                     alt="{{ project.name }}"
+                     class="w-full h-48 object-cover rounded-xl shadow-lg">
+            </div>
+            
+            <!-- 项目状态标签 -->
+            <div class="flex items-center space-x-4 text-sm">
+                <span class="px-2 py-1 rounded-full text-xs font-medium bg-white bg-opacity-20">
+                    {{ project.created_at.strftime('%Y-%m-%d') }}
+                </span>
+                <span class="px-2 py-1 rounded-full text-xs font-medium 
+                    {% if project.status == 'active' %}bg-green-500 bg-opacity-90
+                    {% elif project.status == 'completed' %}bg-blue-500 bg-opacity-90
+                    {% else %}bg-gray-500 bg-opacity-90{% endif %}">
+                    {{ {'active': '募集中', 'completed': '已完成', 'ended': '已结束'}.get(project.status, project.status) }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="px-4 -mt-16 relative z-10 space-y-4 mb-6">
+        <!-- 投资数据卡片 -->
+        <div class="bg-white rounded-2xl p-6 shadow-lg">
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-gray-900">¥{{ "%.2f"|format(project.share_price) }}</div>
+                    <div class="text-xs text-gray-500 mt-1">每份金额</div>
+                </div>
+                <div class="text-center border-l border-r border-gray-100">
+                    <div class="text-2xl font-bold text-green-600">{{ "%.2f"|format(project.daily_roi) }}%</div>
+                    <div class="text-xs text-gray-500 mt-1">日收益率</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-gray-900">{{ project.available_shares }}</div>
+                    <div class="text-xs text-gray-500 mt-1">剩余份数</div>
+                </div>
+            </div>
+
+            <!-- 进度条 -->
+            <div class="space-y-2 mb-6">
+                {% set progress = ((project.total_shares - project.available_shares) / project.total_shares * 100)|round %}
+                <div class="flex justify-between text-xs text-gray-500">
+                    <span>已募集 {{ progress }}%</span>
+                    <span>目标 ¥{{ "%.2f"|format(project.target_amount) }}</span>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-2">
+                    <div class="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-500"
+                         style="width: {{ progress }}%"></div>
+                </div>
+                <div class="flex justify-between text-xs text-gray-500">
+                    <span>已筹 ¥{{ "%.2f"|format(project.current_amount) }}</span>
+                    <span>剩余 {{ project.available_shares }} 份</span>
+                </div>
+            </div>
+
+            <!-- 投资按钮 -->
+            {% if current_user.is_authenticated %}
+                {% if project.status == 'active' and project.available_shares > 0 %}
+                    <a href="{{ url_for('project.invest', id=project.id) }}" 
+                       class="block w-full text-center py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-600 hover:to-purple-700 transition-colors duration-200 shadow-lg">
+                        立即投资
+                    </a>
+                    {% if current_user.balance < project.share_price %}
+                        <div class="flex justify-center items-center mt-3 space-x-2 text-sm">
+                            <span class="text-red-500">余额不足</span>
+                            <a href="{{ url_for('user.recharge', source='project', project_id=project.id) }}" 
+                               class="text-indigo-600 hover:text-indigo-700">去充值</a>
+                        </div>
+                    {% endif %}
+                {% elif project.status == 'active' and project.available_shares == 0 %}
+                    <button disabled class="block w-full text-center py-3 px-4 bg-gray-400 text-white rounded-xl font-medium cursor-not-allowed">
+                        已售罄
+                    </button>
+                {% else %}
+                    <button disabled class="block w-full text-center py-3 px-4 bg-gray-400 text-white rounded-xl font-medium cursor-not-allowed">
+                        项目已结束
+                    </button>
+                {% endif %}
+            {% else %}
+                <a href="{{ url_for('auth.login', next=request.path) }}" 
+                   class="block w-full text-center py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-600 hover:to-purple-700 transition-colors duration-200 shadow-lg">
+                    登录后投资
+                </a>
+            {% endif %}
+        </div>
+
+        <!-- 项目详情卡片 -->
+        <div class="bg-white rounded-2xl p-6 shadow-lg">
+            <div class="space-y-6">
+                <!-- 项目介绍 -->
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-info-circle text-indigo-500 mr-2"></i>
+                        项目介绍
+                    </h2>
+                    <div class="text-gray-600 text-sm leading-relaxed">
+                        {{ project.description|safe }}
+                    </div>
+                </div>
+
+                <!-- 投资说明 -->
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-file-alt text-indigo-500 mr-2"></i>
+                        投资说明
+                    </h2>
+                    <ul class="space-y-3 text-sm text-gray-600">
+                        <li class="flex items-start">
+                            <i class="fas fa-circle text-xs text-indigo-500 mt-1.5 mr-2"></i>
+                            <span>最小投资单位：1份（¥{{ "%.2f"|format(project.share_price) }}）</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-circle text-xs text-indigo-500 mt-1.5 mr-2"></i>
+                            <span>日收益率：{{ "%.2f"|format(project.daily_roi) }}%，每日结算收益</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-circle text-xs text-indigo-500 mt-1.5 mr-2"></i>
+                            <span>收益分配：每日结算，次日可提现</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-circle text-xs text-indigo-500 mt-1.5 mr-2"></i>
+                            <span>项目周期：灵活退出，随时可赎回</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 安全保障 -->
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-shield-alt text-indigo-500 mr-2"></i>
+                        安全保障
+                    </h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-50 rounded-xl p-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                                    <i class="fas fa-check-circle text-green-500"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">资金安全</div>
+                                    <div class="text-xs text-gray-500">第三方托管</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <i class="fas fa-lock text-blue-500"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">隐私保护</div>
+                                    <div class="text-xs text-gray-500">数据加密</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部导航栏 -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50">
+        <div class="flex justify-around items-center h-16">
+            <a href="/" class="flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors duration-200">
+                <i class="fas fa-home text-xl"></i>
+                <span class="text-xs mt-1">首页</span>
+            </a>
+            <a href="{{ url_for('user.investments') if current_user.is_authenticated else url_for('auth.login') }}" 
+               class="flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors duration-200">
+                <i class="fas fa-chart-line text-xl"></i>
+                <span class="text-xs mt-1">投资</span>
+            </a>
+            <a href="{{ url_for('user.referrals') if current_user.is_authenticated else url_for('auth.login') }}" 
+               class="flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors duration-200">
+                <i class="fas fa-users text-xl"></i>
+                <span class="text-xs mt-1">邀请</span>
+            </a>
+            <a href="{{ url_for('user.profile') if current_user.is_authenticated else url_for('auth.login') }}" 
+               class="flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors duration-200">
+                <i class="fas fa-user text-xl"></i>
+                <span class="text-xs mt-1">我的</span>
+            </a>
+        </div>
+    </nav>
+</div>
+{% endblock %}

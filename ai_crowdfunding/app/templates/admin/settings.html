@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="space-y-6">
+        <!-- 头像设置 -->
+        <div class="bg-white shadow rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">头像设置</h3>
+            <div class="flex items-center space-x-6">
+                <div class="flex-shrink-0">
+                    <div class="relative">
+                        {% if current_user.avatar_path %}
+                        <img id="avatarPreview" class="h-24 w-24 rounded-full object-cover" 
+                             src="{{ url_for('static', filename='uploads/' + current_user.avatar_path) }}" 
+                             alt="{{ current_user.username }}的头像">
+                        {% else %}
+                        <img id="avatarPreview" class="h-24 w-24 rounded-full object-cover" 
+                             src="{{ url_for('static', filename='images/default-avatar.png') }}" 
+                             alt="默认头像">
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <form id="avatarForm" action="{{ url_for('user.update_avatar') }}" method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <label class="block">
+                            <span class="sr-only">选择头像</span>
+                            <input type="file" name="avatar" id="avatarInput" accept="image/*"
+                                   class="block w-full text-sm text-gray-500
+                                          file:mr-4 file:py-2 file:px-4
+                                          file:rounded-full file:border-0
+                                          file:text-sm file:font-semibold
+                                          file:bg-indigo-50 file:text-indigo-700
+                                          hover:file:bg-indigo-100">
+                        </label>
+                        <p class="mt-2 text-sm text-gray-500">支持 JPG、PNG、GIF 格式，最大 5MB</p>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 其他设置部分 -->
+        <div class="bg-white shadow rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">账户设置</h3>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-base font-medium text-gray-900">用户名</h4>
+                        <p class="text-sm text-gray-500">{{ current_user.username }}</p>
+                    </div>
+                    <a href="{{ url_for('user.edit_username') }}" class="text-indigo-600 hover:text-indigo-900">修改</a>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-base font-medium text-gray-900">密码</h4>
+                        <p class="text-sm text-gray-500">********</p>
+                    </div>
+                    <a href="{{ url_for('user.edit_password') }}" class="text-indigo-600 hover:text-indigo-900">修改</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 实名认证 -->
+        <div class="bg-white shadow rounded-lg p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900">实名认证</h3>
+                    <p class="text-sm text-gray-500 mt-1">完成实名认证以解锁更多功能</p>
+                </div>
+                <a href="{{ url_for('user.verify_identity') }}" class="text-indigo-600 hover:text-indigo-900">去认证</a>
+            </div>
+        </div>
+
+        <!-- 支付设置 -->
+        <div class="bg-white shadow rounded-lg p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900">支付设置</h3>
+                    <p class="text-sm text-gray-500 mt-1">管理您的支付方式和银行卡</p>
+                </div>
+                <a href="{{ url_for('user.payment_settings') }}" class="text-indigo-600 hover:text-indigo-900">管理</a>
+            </div>
+        </div>
+
+        <!-- 通知设置 -->
+        <div class="bg-white shadow rounded-lg p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900">通知设置</h3>
+                    <p class="text-sm text-gray-500 mt-1">自定义您接收通知的方式</p>
+                </div>
+                <a href="{{ url_for('user.notification_settings') }}" class="text-indigo-600 hover:text-indigo-900">设置</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 头像预览功能
+document.getElementById('avatarInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        // 检查文件大小
+        if (file.size > 5 * 1024 * 1024) { // 5MB
+            alert('文件大小不能超过5MB');
+            this.value = '';
+            return;
+        }
+        
+        // 检查文件类型
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('只允许上传 JPG、PNG 或 GIF 格式的图片');
+            this.value = '';
+            return;
+        }
+        
+        // 预览图片
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('avatarPreview').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+        
+        // 自动提交表单
+        document.getElementById('avatarForm').submit();
+    }
+});
+</script>
+{% endblock %}

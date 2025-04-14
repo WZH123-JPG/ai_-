@@ -1,0 +1,294 @@
+{% extends "admin/base.html" %}
+
+{% block breadcrumb %}
+<li>
+    <div class="flex items-center">
+        <span class="text-gray-600 font-medium">提现配置</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-2xl font-bold text-gray-900">提现配置</h1>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 主配置表单 -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="border-b border-gray-100">
+                    <div class="px-6 py-4">
+                        <h2 class="text-lg font-semibold text-gray-900">基本设置</h2>
+                        <p class="mt-1 text-sm text-gray-500">配置提现相关的基本参数</p>
+                    </div>
+                </div>
+                
+                <form method="POST" id="withdrawConfigForm" class="p-6">
+                    {{ form.csrf_token }}
+                    
+                    <div class="space-y-6">
+                        <!-- 提现金额设置 -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label for="min_amount" class="block text-sm font-medium text-gray-700">最低提现金额</label>
+                                <div class="relative rounded-lg">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">¥</span>
+                                    </div>
+                                    <input type="number" 
+                                           id="min_amount" 
+                                           name="min_amount" 
+                                           value="{{ "%.2f"|format(config.min_amount) }}"
+                                           class="block w-full pl-7 pr-12 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 sm:text-sm"
+                                           step="0.01" 
+                                           min="0" 
+                                           required>
+                                </div>
+                                <p class="text-sm text-gray-500">用户单次提现的最低金额限制</p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label for="max_amount" class="block text-sm font-medium text-gray-700">最高提现金额</label>
+                                <div class="relative rounded-lg">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">¥</span>
+                                    </div>
+                                    <input type="number" 
+                                           id="max_amount" 
+                                           name="max_amount" 
+                                           value="{{ "%.2f"|format(config.max_amount) }}"
+                                           class="block w-full pl-7 pr-12 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 sm:text-sm"
+                                           step="0.01" 
+                                           min="0" 
+                                           required>
+                                </div>
+                                <p class="text-sm text-gray-500">用户单次提现的最高金额限制</p>
+                            </div>
+                        </div>
+
+                        <!-- 手续费和次数限制 -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label for="fee_percentage" class="block text-sm font-medium text-gray-700">提现手续费率</label>
+                                <div class="relative rounded-lg">
+                                    <input type="number" 
+                                           id="fee_percentage" 
+                                           name="fee_percentage" 
+                                           value="{{ "%.2f"|format(config.fee_percentage) }}"
+                                           class="block w-full pr-12 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 sm:text-sm"
+                                           step="0.01" 
+                                           min="0" 
+                                           max="100" 
+                                           required>
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-500">提现时收取的手续费比例</p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label for="daily_limit" class="block text-sm font-medium text-gray-700">每日提现次数限制</label>
+                                <div class="relative rounded-lg">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <i class="fas fa-clock text-gray-400"></i>
+                                    </div>
+                                    <input type="number" 
+                                           id="daily_limit" 
+                                           name="daily_limit" 
+                                           value="{{ config.daily_limit }}"
+                                           class="block w-full pl-10 pr-12 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 sm:text-sm"
+                                           min="1" 
+                                           required>
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">次/天</span>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-500">用户每天最多可以提现的次数</p>
+                            </div>
+                        </div>
+
+                        <!-- 提现时间设置 -->
+                        <div class="space-y-3">
+                            <label class="block text-sm font-medium text-gray-700">允许提现的星期</label>
+                            <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                                <div class="grid grid-cols-4 sm:grid-cols-7 gap-3">
+                                    {% for day_value, day_name in [
+                                        ('0', '周日'),
+                                        ('1', '周一'),
+                                        ('2', '周二'),
+                                        ('3', '周三'),
+                                        ('4', '周四'),
+                                        ('5', '周五'),
+                                        ('6', '周六')
+                                    ] %}
+                                    <div class="relative">
+                                        <input type="checkbox" 
+                                               id="day{{ day_value }}"
+                                               name="allowed_days" 
+                                               value="{{ day_value }}" 
+                                               class="hidden" 
+                                               {{ day_value in config.allowed_days_list|map('string')|list and 'checked' or '' }}
+                                               data-original="{{ day_value in config.allowed_days_list|map('string')|list and 'true' or 'false' }}"
+                                               onchange="updateDayStyle(this)">
+                                        <label for="day{{ day_value }}" 
+                                               class="day-label block w-full py-2 text-center text-sm rounded-lg border-2 cursor-pointer transition-all duration-200
+                                                      {{ day_value in config.allowed_days_list|map('string')|list 
+                                                         and 'bg-indigo-600 border-indigo-500 text-white' 
+                                                         or 'bg-white border-gray-200 text-gray-500 hover:border-gray-300' }}">
+                                            {{ day_name }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4 text-sm">
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 bg-indigo-600 rounded mr-2"></div>
+                                    <span class="text-gray-600">允许提现</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 bg-white border-2 border-gray-200 rounded mr-2"></div>
+                                    <span class="text-gray-600">不允许提现</span>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-500">选择允许用户提现的星期</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 flex justify-end">
+                        <button type="submit" 
+                                id="submitBtn"
+                                class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
+                            <i class="fas fa-save mr-2"></i>
+                            保存配置
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 配置说明卡片 -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden sticky top-6">
+                <div class="border-b border-gray-100">
+                    <div class="px-6 py-4">
+                        <h2 class="text-lg font-semibold text-gray-900">配置说明</h2>
+                    </div>
+                </div>
+                
+                <div class="p-6 space-y-6">
+                    <div class="space-y-2">
+                        <div class="flex items-center text-gray-900">
+                            <i class="fas fa-money-bill-wave text-indigo-500 mr-3 text-lg"></i>
+                            <h3 class="font-medium">提现金额</h3>
+                        </div>
+                        <p class="text-sm text-gray-600 ml-8">设置用户单次提现的最低和最高金额限制，确保提现金额在合理范围内。</p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex items-center text-gray-900">
+                            <i class="fas fa-percentage text-indigo-500 mr-3 text-lg"></i>
+                            <h3 class="font-medium">手续费率</h3>
+                        </div>
+                        <p class="text-sm text-gray-600 ml-8">设置提现手续费的百分比，将从用户提现金额中扣除。</p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex items-center text-gray-900">
+                            <i class="fas fa-clock text-indigo-500 mr-3 text-lg"></i>
+                            <h3 class="font-medium">每日限制</h3>
+                        </div>
+                        <p class="text-sm text-gray-600 ml-8">限制用户每天可以提现的次数，防止频繁提现。</p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex items-center text-gray-900">
+                            <i class="fas fa-calendar-alt text-indigo-500 mr-3 text-lg"></i>
+                            <h3 class="font-medium">提现星期</h3>
+                        </div>
+                        <p class="text-sm text-gray-600 ml-8">选择允许用户提现的星期，可以设置工作日或其他特定日期。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('withdrawConfigForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // 表单验证
+    const minAmount = parseFloat(document.getElementById('min_amount').value);
+    const maxAmount = parseFloat(document.getElementById('max_amount').value);
+    const feePercentage = parseFloat(document.getElementById('fee_percentage').value);
+    const dailyLimit = parseInt(document.getElementById('daily_limit').value);
+    
+    if (minAmount >= maxAmount) {
+        Swal.fire({
+            icon: 'error',
+            title: '验证失败',
+            text: '最低提现金额必须小于最高提现金额',
+            confirmButtonColor: '#4F46E5'
+        });
+        return;
+    }
+    
+    if (feePercentage > 100) {
+        Swal.fire({
+            icon: 'error',
+            title: '验证失败',
+            text: '手续费率不能超过100%',
+            confirmButtonColor: '#4F46E5'
+        });
+        return;
+    }
+    
+    if (dailyLimit < 1) {
+        Swal.fire({
+            icon: 'error',
+            title: '验证失败',
+            text: '每日提现次数限制必须至少为1次',
+            confirmButtonColor: '#4F46E5'
+        });
+        return;
+    }
+
+    // 检查是否至少选择了一个提现星期
+    const checkedDays = document.querySelectorAll('input[name="allowed_days"]:checked');
+    if (checkedDays.length === 0) {
+        Swal.fire({
+            icon: 'error',
+            title: '验证失败',
+            text: '请至少选择一个允许提现的星期',
+            confirmButtonColor: '#4F46E5'
+        });
+        return;
+    }
+    
+    // 禁用提交按钮，显示加载状态
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> 保存中...';
+    
+    // 提交表单
+    this.submit();
+});
+
+// 更新星期选择样式的函数
+function updateDayStyle(checkbox) {
+    const label = document.querySelector(`label[for="${checkbox.id}"]`);
+    if (checkbox.checked) {
+        label.classList.remove('bg-white', 'border-gray-200', 'text-gray-500');
+        label.classList.add('bg-indigo-600', 'border-indigo-500', 'text-white');
+    } else {
+        label.classList.remove('bg-indigo-600', 'border-indigo-500', 'text-white');
+        label.classList.add('bg-white', 'border-gray-200', 'text-gray-500');
+    }
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="pb-16">
+    <!-- 顶部状态栏 -->
+    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+        <!-- 头部导航 -->
+        <div class="flex justify-between items-center px-4 pt-12 pb-4">
+            <div class="flex items-center">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" class="h-8 w-8 rounded-lg">
+                <span class="ml-2 text-lg font-medium">AI众筹</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="#" class="relative">
+                    <i class="fas fa-bell text-xl"></i>
+                    <span class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </a>
+                <a href="{{ url_for('user.recharge', source='index') if current_user.is_authenticated else url_for('auth.login') }}" 
+                   class="bg-white bg-opacity-20 rounded-full px-4 py-1.5 text-sm">
+                    充值
+                </a>
+            </div>
+        </div>
+
+        <!-- 用户资产信息 -->
+        {% if current_user.is_authenticated %}
+        <div class="px-4 pb-6">
+            <div class="text-sm opacity-90 mb-1">总资产 (元)</div>
+            <div class="text-2xl font-bold mb-4">¥{{ "%.2f"|format(current_user.balance) }}</div>
+            <div class="flex space-x-8">
+                <div>
+                    <div class="text-sm opacity-90">昨日收益</div>
+                    <div class="text-base font-medium">+¥{{ "%.2f"|format(yesterday_earnings) }}</div>
+                </div>
+                <div>
+                    <div class="text-sm opacity-90">累计收益</div>
+                    <div class="text-base font-medium">¥{{ "%.2f"|format(total_earnings) }}</div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="px-4 pb-6">
+            <a href="{{ url_for('auth.login') }}" class="inline-block">
+                <div class="text-sm opacity-90 mb-1">总资产 (元)</div>
+                <div class="text-2xl font-bold mb-4">登录后可见</div>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 快捷功能区 -->
+    <div class="bg-white px-4 py-6 -mt-4 rounded-t-3xl relative z-10 shadow-sm">
+        <div class="grid grid-cols-4 gap-6">
+            <a href="{{ url_for('user.investments') if current_user.is_authenticated else url_for('auth.login') }}" class="text-center">
+                <div class="w-14 h-14 mx-auto bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-2 shadow-sm">
+                    <i class="fas fa-chart-line text-xl text-white"></i>
+                </div>
+                <span class="text-xs text-gray-600">我的投资</span>
+            </a>
+            <a href="#newbie" class="text-center">
+                <div class="w-14 h-14 mx-auto bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mb-2 shadow-sm">
+                    <i class="fas fa-gift text-xl text-white"></i>
+                </div>
+                <span class="text-xs text-gray-600">新手福利</span>
+            </a>
+            <a href="{{ url_for('user.referrals') if current_user.is_authenticated else url_for('auth.login') }}" class="text-center">
+                <div class="w-14 h-14 mx-auto bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-2xl flex items-center justify-center mb-2 shadow-sm">
+                    <i class="fas fa-users text-xl text-white"></i>
+                </div>
+                <span class="text-xs text-gray-600">邀请好友</span>
+            </a>
+            <a href="#help" class="text-center">
+                <div class="w-14 h-14 mx-auto bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mb-2 shadow-sm">
+                    <i class="fas fa-question text-xl text-white"></i>
+                </div>
+                <span class="text-xs text-gray-600">帮助中心</span>
+            </a>
+        </div>
+    </div>
+
+
+    <!-- 项目推荐 -->
+    <div class="bg-gray-50 px-4 py-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold text-gray-900">精选项目</h2>
+            <a href="{{ url_for('project.project_list') }}" class="text-sm text-gray-500 flex items-center hover:text-indigo-600 transition-colors duration-200">
+                更多 <i class="fas fa-chevron-right ml-1 text-xs"></i>
+            </a>
+        </div>
+
+        <div class="space-y-4">
+            {% for project in projects %}
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+                <div class="flex space-x-4">
+                    <!-- 项目图片 -->
+                    <div class="flex-shrink-0">
+                        <img src="{{ url_for('static', filename='uploads/' + project.image_path) }}" 
+                             alt="{{ project.name }}"
+                             class="w-24 h-24 object-cover rounded-xl">
+                    </div>
+                    
+                    <!-- 项目信息 -->
+                    <div class="flex-1">
+                        <div class="flex items-start justify-between mb-2">
+                            <div>
+                                <h3 class="text-base font-bold text-gray-900">{{ project.name }}</h3>
+                                <p class="text-sm text-gray-500 mt-1 line-clamp-2">{{ project.description }}</p>
+                            </div>
+                            <span class="px-2 py-1 rounded-full text-xs font-medium 
+                                {% if project.status == 'active' %}bg-green-100 text-green-800
+                                {% elif project.status == 'completed' %}bg-blue-100 text-blue-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ {'active': '募集中', 'completed': '已完成', 'failed': '未达标'}[project.status] }}
+                            </span>
+                        </div>
+
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <div class="text-xs text-gray-500">目标金额</div>
+                                <div class="text-sm font-bold text-gray-900">¥{{ "%.2f"|format(project.target_amount) }}</div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-gray-500">每份金额</div>
+                                <div class="text-sm font-bold text-gray-900">¥{{ "%.2f"|format(project.share_price) }}</div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-gray-500">日收益率</div>
+                                <div class="text-sm font-bold text-green-600">{{ "%.2f"|format(project.daily_roi) }}%</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            {% set progress = ((project.total_shares - project.remaining_shares) / project.total_shares * 100)|round %}
+                            <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                <span>已募集 {{ progress }}%</span>
+                                <span>剩余 {{ project.remaining_shares }} 份</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5">
+                                <div class="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full transition-all duration-500"
+                                     style="width: {{ progress }}%"></div>
+                            </div>
+                        </div>
+
+                        <a href="{{ url_for('project.project_detail', id=project.id) }}" 
+                           class="block w-full text-center py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-medium rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                            立即投资
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-white rounded-2xl p-8 text-center">
+                <div class="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <i class="fas fa-inbox text-2xl text-gray-400"></i>
+                </div>
+                <h3 class="text-base font-medium text-gray-900 mb-2">暂无可投资项目</h3>
+                <p class="text-sm text-gray-500">我们正在甄选优质项目，请稍后查看</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

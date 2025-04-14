@@ -1,0 +1,141 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">项目管理</h1>
+        <a href="{{ url_for('admin.project_create') }}" 
+           class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+            创建新项目
+        </a>
+    </div>
+
+    <!-- 搜索表单 -->
+    <div class="bg-white shadow-md rounded-lg p-4 mb-6">
+        <form action="{{ url_for('admin.projects') }}" method="GET" class="flex items-center space-x-4">
+            <div class="flex-1">
+                <label for="project_name" class="sr-only">项目名称</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-gray-400"></i>
+                    </div>
+                    <input type="text" name="project_name" id="project_name" 
+                           value="{{ project_name }}"
+                           class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                           placeholder="搜索项目名称">
+                </div>
+            </div>
+            
+            <button type="submit" 
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                搜索
+            </button>
+            {% if project_name %}
+            <a href="{{ url_for('admin.projects') }}" 
+               class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                重置
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">项目图片</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">项目名称</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">目标金额</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">已筹金额</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">每份金额</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">剩余份额</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日收益率</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for project in projects.items %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="h-16 w-16 rounded-lg overflow-hidden">
+                            <img src="{{ url_for('static', filename='uploads/' + project.image_path) }}" 
+                                 alt="{{ project.name }}"
+                                 class="h-full w-full object-cover">
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">{{ project.name }}</div>
+                        <div class="text-sm text-gray-500">{{ project.description[:50] }}...</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">¥{{ "%.2f"|format(project.target_amount) }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">¥{{ "%.2f"|format(project.current_amount) }}</div>
+                        <div class="text-xs text-gray-500">{{ "%.1f"|format(project.current_amount / project.target_amount * 100) }}%</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">¥{{ "%.2f"|format(project.share_price) }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{ project.available_shares }}</div>
+                        <div class="text-sm text-gray-500">总{{ project.total_shares }}股</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-green-600 font-medium">{{ "%.2f"|format(project.daily_roi) }}%</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                   {% if project.status == 'active' %}bg-green-100 text-green-800
+                                   {% elif project.status == 'completed' %}bg-blue-100 text-blue-800
+                                   {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ {'active': '募集中', 'completed': '已完成', 'ended': '已结束'}[project.status] }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <a href="{{ url_for('admin.project_detail', project_id=project.id) }}" 
+                           class="text-blue-600 hover:text-blue-900 mr-3">
+                            查看
+                        </a>
+                        <a href="{{ url_for('admin.project_edit', project_id=project.id) }}" 
+                           class="text-indigo-600 hover:text-indigo-900">
+                            编辑
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页 -->
+    {% if projects.pages > 1 %}
+    <div class="flex justify-center mt-6">
+        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+            {% if projects.has_prev %}
+            <a href="{{ url_for('admin.projects', page=projects.prev_num, project_name=project_name) }}" 
+               class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                上一页
+            </a>
+            {% endif %}
+            
+            {% for page_num in range(1, projects.pages + 1) %}
+            <a href="{{ url_for('admin.projects', page=page_num, project_name=project_name) }}" 
+               class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium 
+                      {% if page_num == projects.page %}text-blue-600 bg-blue-50{% else %}text-gray-700 hover:bg-gray-50{% endif %}">
+                {{ page_num }}
+            </a>
+            {% endfor %}
+            
+            {% if projects.has_next %}
+            <a href="{{ url_for('admin.projects', page=projects.next_num, project_name=project_name) }}" 
+               class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                下一页
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

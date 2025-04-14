@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- 顶部状态栏 -->
+    <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white">
+        <div class="px-4 py-4">
+            <div class="flex items-center">
+                <a href="{{ url_for('user.profile') }}" class="p-2 -ml-2 hover:bg-white hover:bg-opacity-10 rounded-full">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                </a>
+                <h1 class="ml-2 text-xl font-bold">充值记录</h1>
+            </div>
+            
+            <!-- 筛选区域 -->
+            <div class="mt-4 p-4 bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl">
+                <form method="get" class="space-y-4">
+                    <!-- 支付方式选择 -->
+                    <div class="w-full">
+                        <label class="block text-sm text-white opacity-75 mb-1">充值方式</label>
+                        <div class="relative">
+                            <select name="payment_method" 
+                                    class="w-full h-12 px-3 bg-white bg-opacity-20 rounded-xl text-gray-900 appearance-none focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 mobile-select">
+                                <option value="" class="py-2.5 px-3 text-base text-gray-900 bg-transparent">全部</option>
+                                <option value="alipay" class="py-2.5 px-3 text-base text-gray-900 bg-white" {% if request.args.get('payment_method') == 'alipay' %}selected{% endif %}>支付宝</option>
+                                <option value="wechat" class="py-2.5 px-3 text-base text-gray-900 bg-white" {% if request.args.get('payment_method') == 'wechat' %}selected{% endif %}>微信支付</option>
+                                <option value="bank" class="py-2.5 px-3 text-base text-gray-900 bg-white" {% if request.args.get('payment_method') == 'bank' %}selected{% endif %}>银行卡</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-900">
+                                <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                                    <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 日期选择 -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-white opacity-75 mb-1">开始日期</label>
+                            <input type="date" name="start_date" 
+                                   value="{{ request.args.get('start_date', '') }}" 
+                                   class="w-full h-12 px-3 bg-white bg-opacity-20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-white opacity-75 mb-1">结束日期</label>
+                            <input type="date" name="end_date" 
+                                   value="{{ request.args.get('end_date', '') }}"
+                                   class="w-full h-12 px-3 bg-white bg-opacity-20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
+                        </div>
+                    </div>
+                    
+                    <!-- 筛选按钮 -->
+                    <div class="flex justify-between items-center">
+                        <button type="submit" 
+                                class="px-6 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-xl text-white transition-all duration-200">
+                            <i class="fas fa-filter mr-2"></i>筛选
+                        </button>
+                        
+                        <a href="{{ url_for('user.recharge_list') }}" 
+                           class="px-4 py-2 text-white text-sm opacity-75 hover:opacity-100">
+                            重置筛选
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 总充值统计 -->
+            <div class="mt-4 p-4 bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl">
+                <div class="text-sm opacity-75">累计充值金额</div>
+                <div class="mt-1 flex items-baseline">
+                    <span class="text-3xl font-bold">¥{{ "%.2f"|format(recharges|selectattr('status', 'equalto', 'completed')|sum(attribute='amount')) if recharges else '0.00' }}</span>
+                    <span class="ml-2 text-sm opacity-75">共{{ recharges|selectattr('status', 'equalto', 'completed')|list|length }}笔</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 记录列表 -->
+    <div class="px-4 -mt-4">
+        <!-- 分页设置 -->
+        <div class="bg-white rounded-xl p-4 mb-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div class="text-sm text-gray-600">每页显示：</div>
+                <div class="flex space-x-2">
+                    <button onclick="changePageSize(5)" 
+                            class="page-size-btn px-3 py-1 rounded-md text-sm" 
+                            data-size="5">5条</button>
+                    <button onclick="changePageSize(10)" 
+                            class="page-size-btn px-3 py-1 rounded-md text-sm" 
+                            data-size="10">10条</button>
+                </div>
+            </div>
+        </div>
+
+        {% if recharges %}
+        <div class="space-y-3" id="recharge-list">
+            {% for recharge in recharges %}
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center
+                            {% if recharge.payment_method == 'alipay' %}bg-blue-100
+                            {% elif recharge.payment_method == 'wechat' %}bg-green-100
+                            {% else %}bg-gray-100{% endif %}">
+                            <i class="text-xl
+                                {% if recharge.payment_method == 'alipay' %}fab fa-alipay text-blue-600
+                                {% elif recharge.payment_method == 'wechat' %}fab fa-weixin text-green-600
+                                {% else %}fas fa-university text-gray-600{% endif %}"></i>
+                        </div>
+                        <div>
+                            <div class="text-base font-medium text-gray-900">
+                                {{ {'alipay': '支付宝充值', 'wechat': '微信充值', 'bank': '银行卡充值'}[recharge.payment_method] }}
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                {{ recharge.created_at.strftime('%Y-%m-%d %H:%M') }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-gray-900">
+                            +¥{{ "%.2f"|format(recharge.amount) }}
+                        </div>
+                        <div class="mt-1">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                {% if recharge.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif recharge.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ {'completed': '已完成', 'pending': '处理中', 'failed': '失败'}[recharge.status] }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if recharge.payment_no %}
+                <div class="mt-3 pt-3 border-t border-gray-100">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">交易流水号</span>
+                        <span class="font-medium text-gray-900">{{ recharge.payment_no }}</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 分页导航 -->
+        <div class="mt-6 bg-white rounded-xl p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <button onclick="previousPage()" 
+                        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        id="prev-btn">
+                    上一页
+                </button>
+                <span class="text-sm text-gray-600" id="page-info">第 <span id="current-page">1</span> 页</span>
+                <button onclick="nextPage()" 
+                        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        id="next-btn">
+                    下一页
+                </button>
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-white rounded-2xl shadow-sm p-8 text-center">
+            <div class="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <i class="fas fa-wallet text-2xl text-gray-400"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">暂无充值记录</h3>
+            <p class="text-sm text-gray-500 mb-6">您还没有进行过充值操作</p>
+            <a href="{{ url_for('user.recharge') }}" 
+               class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-full shadow-sm text-white bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600">
+                <i class="fas fa-plus mr-2"></i>
+                立即充值
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 底部充值按钮 -->
+    {% if recharges %}
+    <div class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100">
+        <a href="{{ url_for('user.recharge') }}" 
+           class="block w-full py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl text-center font-medium hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-lg">
+            <i class="fas fa-plus mr-2"></i>
+            充值
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    /* 移动端下拉菜单样式 */
+    @media (max-width: 640px) {
+        select.mobile-select {
+            font-size: 16px;
+            color: #1f2937 !important;
+            background-color: rgba(255, 255, 255, 0.2) !important;
+        }
+        
+        select.mobile-select option:not(:first-child) {
+            font-size: 16px;
+            padding: 12px;
+            background-color: white !important;
+            color: #1f2937 !important;
+        }
+
+        select.mobile-select option:first-child {
+            background-color: rgba(255, 255, 255, 0.2) !important;
+        }
+    }
+
+    /* 确保下拉菜单不会超出屏幕 */
+    select {
+        max-height: 50vh;
+        position: relative;
+        z-index: 50;
+    }
+
+    /* 确保选项文字颜色始终可见 */
+    select option:not(:first-child) {
+        background-color: white !important;
+        color: #1f2937 !important;
+    }
+
+    select option:first-child {
+        background-color: transparent !important;
+    }
+</style>
+
+<script>
+let currentPage = 1;
+let pageSize = 5;
+let recharges = [];
+
+// 初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 获取所有充值记录
+    const rechargeDivs = document.querySelectorAll('#recharge-list > div');
+    recharges = Array.from(rechargeDivs);
+    
+    // 设置默认页大小按钮样式
+    updatePageSizeButtons();
+    
+    // 显示第一页数据
+    showPage(1);
+});
+
+// 更改每页显示条数
+function changePageSize(size) {
+    pageSize = size;
+    currentPage = 1;
+    updatePageSizeButtons();
+    showPage(1);
+}
+
+// 更新页大小按钮样式
+function updatePageSizeButtons() {
+    document.querySelectorAll('.page-size-btn').forEach(btn => {
+        const size = parseInt(btn.dataset.size);
+        if (size === pageSize) {
+            btn.classList.add('bg-indigo-100', 'text-indigo-700', 'font-medium');
+            btn.classList.remove('text-gray-700', 'hover:bg-gray-100');
+        } else {
+            btn.classList.remove('bg-indigo-100', 'text-indigo-700', 'font-medium');
+            btn.classList.add('text-gray-700', 'hover:bg-gray-100');
+        }
+    });
+}
+
+// 显示指定页的数据
+function showPage(page) {
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const maxPage = Math.ceil(recharges.length / pageSize);
+
+    // 隐藏所有充值记录
+    recharges.forEach(rec => rec.style.display = 'none');
+    
+    // 显示当前页的充值记录
+    recharges.slice(startIndex, endIndex).forEach(rec => rec.style.display = 'block');
+
+    // 更新页码信息
+    document.getElementById('current-page').textContent = page;
+    
+    // 更新按钮状态
+    document.getElementById('prev-btn').disabled = page === 1;
+    document.getElementById('next-btn').disabled = page === maxPage;
+}
+
+// 上一页
+function previousPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        showPage(currentPage);
+    }
+}
+
+// 下一页
+function nextPage() {
+    const maxPage = Math.ceil(recharges.length / pageSize);
+    if (currentPage < maxPage) {
+        currentPage++;
+        showPage(currentPage);
+    }
+}
+</script>
+{% endblock %}

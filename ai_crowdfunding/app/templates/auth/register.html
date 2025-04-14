@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden transform hover:scale-[1.01] transition-all duration-200">
+        <div class="relative">
+            <!-- 顶部装饰 -->
+            <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+            
+            <!-- 主要内容 -->
+            <div class="p-8">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-2">创建账户</h2>
+                    <p class="text-sm text-gray-600">加入我们，开启您的投资之旅</p>
+                </div>
+                
+                <form action="{{ url_for('auth.register') }}" method="post" class="space-y-6">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-gray-700">用户名</label>
+                        <div class="mt-1">
+                            <input id="username" name="username" type="text" required
+                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">邮箱</label>
+                        <div class="mt-1">
+                            <input id="email" name="email" type="email" required
+                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700">密码</label>
+                        <div class="mt-1">
+                            <input id="password" name="password" type="password" required
+                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="confirm_password" class="block text-sm font-medium text-gray-700">确认密码</label>
+                        <div class="mt-1">
+                            <input id="confirm_password" name="confirm_password" type="password" required
+                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="referral_code" class="block text-sm font-medium text-gray-700">邀请码（选填）</label>
+                        <div class="mt-1">
+                            <input id="referral_code" name="referral_code" type="text"
+                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <button type="submit"
+                                class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            注册
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="mt-6">
+                    <div class="relative">
+                        <div class="absolute inset-0 flex items-center">
+                            <div class="w-full border-t border-gray-200"></div>
+                        </div>
+                        <div class="relative flex justify-center text-sm">
+                            <span class="px-2 bg-white text-gray-500">已有账号？</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-6">
+                        <a href="{{ url_for('auth.login') }}" 
+                           class="w-full flex justify-center py-3 px-4 rounded-lg text-sm font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transform hover:scale-[1.02] transition-all duration-200">
+                            <span class="flex items-center">
+                                <i class="fas fa-sign-in-alt mr-2"></i>
+                                立即登录
+                            </span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 密码显示切换
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+    
+    togglePassword.addEventListener('click', function() {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        
+        // 切换图标
+        const icon = this.querySelector('i');
+        icon.classList.toggle('fa-eye');
+        icon.classList.toggle('fa-eye-slash');
+    });
+
+    // 表单验证和提交动画
+    const form = document.getElementById('registerForm');
+    const submitButton = form.querySelector('button[type="submit"]');
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // 简单的表单验证
+        const password = passwordInput.value;
+        if (password.length < 6 || !/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+            alert('密码必须至少6位，且包含字母和数字');
+            return;
+        }
+        
+        // 添加加载动画
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i>注册中...';
+        
+        // 延迟提交以显示动画
+        setTimeout(() => {
+            this.submit();
+        }, 500);
+    });
+
+    // 输入框焦点动画
+    const inputs = document.querySelectorAll('input');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.classList.add('ring-2', 'ring-indigo-500', 'ring-opacity-50');
+        });
+        
+        input.addEventListener('blur', function() {
+            this.parentElement.classList.remove('ring-2', 'ring-indigo-500', 'ring-opacity-50');
+        });
+    });
+
+    // 邮箱输入提示
+    const emailInput = document.getElementById('email');
+    emailInput.addEventListener('input', function() {
+        const email = this.value;
+        if (email && !email.includes('@')) {
+            this.classList.add('border-yellow-500');
+        } else {
+            this.classList.remove('border-yellow-500');
+        }
+    });
+});
+</script>
+{% endblock %}

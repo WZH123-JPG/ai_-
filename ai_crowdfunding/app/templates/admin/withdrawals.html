@@ -1,0 +1,199 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">提现管理</h1>
+    </div>
+
+    <!-- 搜索和状态筛选表单 -->
+    <div class="bg-white shadow-md rounded-lg p-4 mb-6">
+        <form action="{{ url_for('admin.withdrawals') }}" method="GET" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- 用户名搜索 -->
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700">用户名</label>
+                    <div class="mt-1 relative rounded-md shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-user text-gray-400"></i>
+                        </div>
+                        <input type="text" name="username" id="username"
+                               value="{{ username }}"
+                               class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                               placeholder="搜索用户名">
+                    </div>
+                </div>
+
+                <!-- 状态筛选 -->
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700">状态</label>
+                    <select name="status" id="status"
+                            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                        <option value="" {% if not status %}selected{% endif %}>全部</option>
+                        <option value="pending" {% if status == 'pending' %}selected{% endif %}>待处理</option>
+                        <option value="approved" {% if status == 'approved' %}selected{% endif %}>已通过</option>
+                        <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>已拒绝</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end space-x-3">
+                {% if username or status %}
+                <a href="{{ url_for('admin.withdrawals') }}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    重置
+                </a>
+                {% endif %}
+                <button type="submit"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    搜索
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 状态统计 -->
+    <div class="mb-6">
+        <div class="text-sm text-gray-500">
+            待处理提现申请：<span class="font-medium text-gray-900">{{ pending_count }}</span> 条
+        </div>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        用户
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        提现金额
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        手续费
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        实际到账
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        收款方式
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        收款账号
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        收款人
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        状态
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        申请时间
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        操作
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for withdrawal in withdrawals.items %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10">
+                                {% if withdrawal.user.avatar_path %}
+                                <img class="h-10 w-10 rounded-full" src="{{ url_for('static', filename='uploads/' + withdrawal.user.avatar_path) }}" alt="">
+                                {% else %}
+                                <img class="h-10 w-10 rounded-full" src="{{ url_for('static', filename='images/default-avatar.png') }}" alt="">
+                                {% endif %}
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">
+                                    {{ withdrawal.user.username }}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">¥{{ "%.2f"|format(withdrawal.amount) }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">¥{{ "%.2f"|format(withdrawal.fee) }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">¥{{ "%.2f"|format(withdrawal.actual_amount) }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{ withdrawal.bank_name }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{ withdrawal.bank_card_number }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{ withdrawal.bank_account_name }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if withdrawal.status == 'pending' %}
+                                bg-yellow-100 text-yellow-800
+                            {% elif withdrawal.status == 'approved' %}
+                                bg-green-100 text-green-800
+                            {% else %}
+                                bg-red-100 text-red-800
+                            {% endif %}">
+                            {{ {'pending': '待审核', 'approved': '已通过', 'rejected': '已拒绝'}[withdrawal.status] }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ withdrawal.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        {% if withdrawal.status == 'pending' %}
+                        <form action="{{ url_for('admin.approve_withdrawal', id=withdrawal.id) }}" method="post" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="text-green-600 hover:text-green-900 mr-2">通过</button>
+                        </form>
+                        <form action="{{ url_for('admin.reject_withdrawal', id=withdrawal.id) }}" method="post" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="text-red-600 hover:text-red-900">拒绝</button>
+                        </form>
+                        {% else %}
+                        <span class="text-gray-400">已处理</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页 -->
+    {% if withdrawals.pages > 1 %}
+    <div class="flex justify-center mt-6">
+        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+            {% if withdrawals.has_prev %}
+            <a href="{{ url_for('admin.withdrawals', page=withdrawals.prev_num, status=status, username=username) }}" 
+               class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                上一页
+            </a>
+            {% endif %}
+            
+            {% for page_num in range(1, withdrawals.pages + 1) %}
+            <a href="{{ url_for('admin.withdrawals', page=page_num, status=status, username=username) }}" 
+               class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium 
+                      {% if page_num == withdrawals.page %}text-blue-600 bg-blue-50{% else %}text-gray-700 hover:bg-gray-50{% endif %}">
+                {{ page_num }}
+            </a>
+            {% endfor %}
+            
+            {% if withdrawals.has_next %}
+            <a href="{{ url_for('admin.withdrawals', page=withdrawals.next_num, status=status, username=username) }}" 
+               class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                下一页
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

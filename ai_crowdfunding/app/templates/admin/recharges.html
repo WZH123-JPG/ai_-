@@ -1,0 +1,173 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">充值管理</h1>
+    </div>
+
+    <!-- 搜索和筛选表单 -->
+    <div class="bg-white shadow-md rounded-lg p-4 mb-6">
+        <form action="{{ url_for('admin.recharges') }}" method="GET" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- 用户名搜索 -->
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700">用户名</label>
+                    <div class="mt-1 relative rounded-md shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-user text-gray-400"></i>
+                        </div>
+                        <input type="text" name="username" id="username"
+                               value="{{ username }}"
+                               class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                               placeholder="搜索用户名">
+                    </div>
+                </div>
+
+                <!-- 支付方式筛选 -->
+                <div>
+                    <label for="payment_method" class="block text-sm font-medium text-gray-700">支付方式</label>
+                    <select name="payment_method" id="payment_method"
+                            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                        <option value="">全部</option>
+                        <option value="alipay" {% if payment_method == 'alipay' %}selected{% endif %}>支付宝</option>
+                        <option value="wechat" {% if payment_method == 'wechat' %}selected{% endif %}>微信支付</option>
+                        <option value="bank" {% if payment_method == 'bank' %}selected{% endif %}>银行转账</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end space-x-3">
+                {% if username or payment_method %}
+                <a href="{{ url_for('admin.recharges') }}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    重置
+                </a>
+                {% endif %}
+                <button type="submit"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    搜索
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">充值金额</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">支付方式</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">支付单号</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">完成时间</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for recharge, user in recharges_list %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="h-10 w-10 flex-shrink-0">
+                                <img class="h-10 w-10 rounded-full object-cover" 
+                                     src="{{ url_for('static', filename='uploads/' + user.avatar_path) }}" 
+                                     alt="{{ user.username }}的头像">
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">{{ user.username }}</div>
+                                <div class="text-sm text-gray-500">{{ user.email }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">¥{{ "%.2f"|format(recharge.amount) }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">
+                            {% if recharge.payment_method == 'alipay' %}
+                                支付宝
+                            {% elif recharge.payment_method == 'wechat' %}
+                                微信支付
+                            {% elif recharge.payment_method == 'bank' %}
+                                银行转账
+                            {% else %}
+                                {{ recharge.payment_method }}
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{ recharge.payment_number }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if recharge.status == 'pending' %}bg-yellow-100 text-yellow-800
+                            {% elif recharge.status == 'completed' %}bg-green-100 text-green-800
+                            {% else %}bg-red-100 text-red-800{% endif %}">
+                            {% if recharge.status == 'pending' %}待审核
+                            {% elif recharge.status == 'completed' %}已完成
+                            {% else %}已拒绝{% endif %}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ recharge.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {% if recharge.completed_at %}
+                            {{ recharge.completed_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        {% if recharge.status == 'pending' %}
+                        <form action="{{ url_for('admin.approve_recharge', recharge_id=recharge.id) }}" method="POST" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="text-green-600 hover:text-green-900 mr-3">通过</button>
+                        </form>
+                        <form action="{{ url_for('admin.reject_recharge', recharge_id=recharge.id) }}" method="POST" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="text-red-600 hover:text-red-900">拒绝</button>
+                        </form>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页 -->
+    {% if recharges.pages > 1 %}
+    <div class="flex justify-center mt-6">
+        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+            {% if recharges.has_prev %}
+            <a href="{{ url_for('admin.recharges', page=recharges.prev_num, username=username, payment_method=payment_method) }}" 
+               class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                上一页
+            </a>
+            {% endif %}
+            
+            {% for page_num in range(1, recharges.pages + 1) %}
+            <a href="{{ url_for('admin.recharges', page=page_num, username=username, payment_method=payment_method) }}" 
+               class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium 
+                      {% if page_num == recharges.page %}text-blue-600 bg-blue-50{% else %}text-gray-700 hover:bg-gray-50{% endif %}">
+                {{ page_num }}
+            </a>
+            {% endfor %}
+            
+            {% if recharges.has_next %}
+            <a href="{{ url_for('admin.recharges', page=recharges.next_num, username=username, payment_method=payment_method) }}" 
+               class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                下一页
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

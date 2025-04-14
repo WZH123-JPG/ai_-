@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-16">
+    <!-- 顶部状态栏 -->
+    <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white">
+        <div class="px-4 pt-12 pb-6">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('main.index') if source == 'index' else url_for('user.profile') }}" class="text-white hover:text-gray-200">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <h1 class="text-2xl font-bold">账户充值</h1>
+                </div>
+            </div>
+            
+            <!-- 余额卡片 -->
+            <div class="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-4 shadow-lg">
+                <div class="text-sm opacity-90">当前余额</div>
+                <div class="text-3xl font-bold mt-2">¥{{ "%.2f"|format(current_user.balance) }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="px-4 -mt-4">
+        <!-- 充值金额选择 -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm mb-6">
+            <h2 class="text-lg font-bold text-gray-900 mb-4">选择充值金额</h2>
+            <div class="grid grid-cols-3 gap-4 mb-4">
+                <button onclick="selectAmount(100)" class="amount-btn p-3 border border-gray-200 rounded-xl text-center hover:border-indigo-500 hover:text-indigo-600 transition-colors duration-200">
+                    <div class="text-lg font-medium">¥100</div>
+                </button>
+                <button onclick="selectAmount(500)" class="amount-btn p-3 border border-gray-200 rounded-xl text-center hover:border-indigo-500 hover:text-indigo-600 transition-colors duration-200">
+                    <div class="text-lg font-medium">¥500</div>
+                </button>
+                <button onclick="selectAmount(1000)" class="amount-btn p-3 border border-gray-200 rounded-xl text-center hover:border-indigo-500 hover:text-indigo-600 transition-colors duration-200">
+                    <div class="text-lg font-medium">¥1000</div>
+                </button>
+                <button onclick="selectAmount(2000)" class="amount-btn p-3 border border-gray-200 rounded-xl text-center hover:border-indigo-500 hover:text-indigo-600 transition-colors duration-200">
+                    <div class="text-lg font-medium">¥2000</div>
+                </button>
+                <button onclick="selectAmount(5000)" class="amount-btn p-3 border border-gray-200 rounded-xl text-center hover:border-indigo-500 hover:text-indigo-600 transition-colors duration-200">
+                    <div class="text-lg font-medium">¥5000</div>
+                </button>
+                <button onclick="selectAmount(10000)" class="amount-btn p-3 border border-gray-200 rounded-xl text-center hover:border-indigo-500 hover:text-indigo-600 transition-colors duration-200">
+                    <div class="text-lg font-medium">¥10000</div>
+                </button>
+            </div>
+            
+            <div class="mb-6">
+                <label for="custom-amount" class="block text-sm font-medium text-gray-700 mb-2">自定义金额</label>
+                <div class="relative rounded-lg">
+                    <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">¥</span>
+                    <input type="number" id="custom-amount" 
+                           class="block w-full pl-8 pr-4 py-3 border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                           placeholder="请输入充值金额">
+                </div>
+            </div>
+        </div>
+
+        <!-- 支付方式选择 -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm mb-6">
+            <h2 class="text-lg font-bold text-gray-900 mb-4">选择支付方式</h2>
+            <div class="space-y-4">
+                <button onclick="selectPayment('alipay')" class="payment-btn w-full flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-indigo-500 transition-colors duration-200">
+                    <div class="flex items-center">
+                        <i class="fab fa-alipay text-2xl text-blue-500"></i>
+                        <span class="ml-3 font-medium">支付宝支付</span>
+                    </div>
+                    <i class="fas fa-check text-indigo-600 opacity-0"></i>
+                </button>
+                
+                <button onclick="selectPayment('wechat')" class="payment-btn w-full flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-indigo-500 transition-colors duration-200">
+                    <div class="flex items-center">
+                        <i class="fab fa-weixin text-2xl text-green-500"></i>
+                        <span class="ml-3 font-medium">微信支付</span>
+                    </div>
+                    <i class="fas fa-check text-indigo-600 opacity-0"></i>
+                </button>
+                
+                <button onclick="selectPayment('bank')" class="payment-btn w-full flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-indigo-500 transition-colors duration-200">
+                    <div class="flex items-center">
+                        <i class="fas fa-university text-2xl text-gray-600"></i>
+                        <span class="ml-3 font-medium">银行卡支付</span>
+                    </div>
+                    <i class="fas fa-check text-indigo-600 opacity-0"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 确认按钮 -->
+        <button onclick="submitRecharge()" 
+                class="w-full py-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl text-lg font-medium hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+            确认充值
+        </button>
+    </div>
+
+    <!-- 底部导航栏 -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50">
+        <div class="flex justify-around items-center h-16">
+            <a href="/" class="flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors duration-200">
+                <i class="fas fa-home text-xl"></i>
+                <span class="text-xs mt-1">首页</span>
+            </a>
+            <a href="{{ url_for('user.investments') }}" 
+               class="flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors duration-200">
+                <i class="fas fa-chart-line text-xl"></i>
+                <span class="text-xs mt-1">投资</span>
+            </a>
+            <a href="{{ url_for('user.referrals') }}" 
+               class="flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors duration-200">
+                <i class="fas fa-users text-xl"></i>
+                <span class="text-xs mt-1">邀请</span>
+            </a>
+            <a href="{{ url_for('user.profile') }}" 
+               class="flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors duration-200">
+                <i class="fas fa-user text-xl"></i>
+                <span class="text-xs mt-1">我的</span>
+            </a>
+        </div>
+    </nav>
+</div>
+
+<script>
+let selectedAmount = 0;
+let selectedPayment = '';
+
+function selectAmount(amount) {
+    selectedAmount = amount;
+    document.getElementById('custom-amount').value = amount;
+    
+    // 更新按钮样式
+    document.querySelectorAll('.amount-btn').forEach(btn => {
+        if (parseInt(btn.querySelector('div').innerText.slice(1)) === amount) {
+            btn.classList.add('border-indigo-500', 'text-indigo-600');
+        } else {
+            btn.classList.remove('border-indigo-500', 'text-indigo-600');
+        }
+    });
+}
+
+function selectPayment(method) {
+    selectedPayment = method;
+    
+    // 更新按钮样式
+    document.querySelectorAll('.payment-btn').forEach(btn => {
+        const checkIcon = btn.querySelector('.fa-check');
+        const buttonText = btn.querySelector('.font-medium').innerText;
+        const matchText = method === 'alipay' ? '支付宝' : method === 'wechat' ? '微信' : '银行卡';
+        
+        if (buttonText.includes(matchText)) {
+            btn.classList.add('border-indigo-500');
+            checkIcon.classList.remove('opacity-0');
+        } else {
+            btn.classList.remove('border-indigo-500');
+            checkIcon.classList.add('opacity-0');
+        }
+    });
+}
+
+async function submitRecharge() {
+    try {
+        const customAmount = document.getElementById('custom-amount').value;
+        const amount = parseFloat(customAmount || selectedAmount);
+        
+        if (!amount || amount <= 0) {
+            alert('请选择或输入充值金额');
+            return;
+        }
+        
+        if (!selectedPayment) {
+            alert('请选择支付方式');
+            return;
+        }
+        
+        // 禁用提交按钮，防止重复提交
+        const submitButton = document.querySelector('button[onclick="submitRecharge()"]');
+        submitButton.disabled = true;
+        submitButton.textContent = '提交中...';
+        
+        // 发送充值请求
+        const response = await fetch('{{ url_for("user.create_recharge") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                amount: amount,
+                payment_method: selectedPayment
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('网络请求失败');
+        }
+        
+        const data = await response.json();
+        
+        if (data.code === 200) {
+            alert('充值申请已提交，请等待审核');
+            window.location.href = '{{ url_for("user.recharge_list") }}';
+        } else {
+            alert(data.message || '充值失败，请重试');
+            // 恢复提交按钮状态
+            submitButton.disabled = false;
+            submitButton.textContent = '确认充值';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('充值失败，请重试');
+        // 恢复提交按钮状态
+        const submitButton = document.querySelector('button[onclick="submitRecharge()"]');
+        submitButton.disabled = false;
+        submitButton.textContent = '确认充值';
+    }
+}
+
+// 监听自定义金额输入
+document.getElementById('custom-amount').addEventListener('input', function(e) {
+    const amount = parseFloat(e.target.value);
+    if (amount) {
+        // 取消其他金额按钮的选中状态
+        document.querySelectorAll('.amount-btn').forEach(btn => {
+            btn.classList.remove('border-indigo-500', 'text-indigo-600');
+        });
+        selectedAmount = amount;
+    }
+});
+</script>
+{% endblock %}

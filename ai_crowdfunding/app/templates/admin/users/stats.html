@@ -1,0 +1,162 @@
+{% extends "admin/base.html" %}
+
+{% block breadcrumb %}
+<span>用户统计</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- 统计卡片 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- 用户总数 -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-purple-500 bg-opacity-10">
+                        <i class="fas fa-users text-purple-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">用户总数</p>
+                        <p class="text-3xl font-bold text-gray-900">{{ total_users }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 活跃用户 -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-green-500 bg-opacity-10">
+                        <i class="fas fa-user-check text-green-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">活跃用户</p>
+                        <p class="text-3xl font-bold text-gray-900">{{ active_users }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 今日新增 -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-blue-500 bg-opacity-10">
+                        <i class="fas fa-user-plus text-blue-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">今日新增</p>
+                        <p class="text-3xl font-bold text-gray-900">{{ new_users_today }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 用户总余额 -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-yellow-500 bg-opacity-10">
+                        <i class="fas fa-wallet text-yellow-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">用户总余额</p>
+                        <p class="text-3xl font-bold text-gray-900">¥{{ "%.2f"|format(total_balance) }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图表区域 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 用户增长趋势 -->
+        <div class="lg:col-span-2 bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">用户增长趋势</h3>
+            <div class="h-80">
+                <canvas id="userGrowthChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 用户分布 -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">用户分布</h3>
+            <div class="h-80">
+                <canvas id="userDistributionChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // 用户增长趋势图
+    var growthCtx = document.getElementById('userGrowthChart').getContext('2d');
+    new Chart(growthCtx, {
+        type: 'line',
+        data: {
+            labels: {{ dates|tojson }},
+            datasets: [{
+                label: '用户数量',
+                data: {{ user_counts|tojson }},
+                borderColor: '#9333EA',
+                backgroundColor: 'rgba(147, 51, 234, 0.1)',
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        drawBorder: false
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+
+    // 用户分布饼图
+    var distributionCtx = document.getElementById('userDistributionChart').getContext('2d');
+    new Chart(distributionCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['活跃用户', '非活跃用户', '管理员'],
+            datasets: [{
+                data: [{{ active_users }}, {{ total_users - active_users - admin_users }}, {{ admin_users }}],
+                backgroundColor: [
+                    '#10B981',
+                    '#EF4444',
+                    '#9333EA'
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            },
+            cutout: '70%'
+        }
+    });
+</script>
+{% endblock %}

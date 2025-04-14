@@ -1,0 +1,185 @@
+{% extends "admin/base.html" %}
+
+{% block breadcrumb %}
+<li>
+    <div class="flex items-center">
+        <span class="text-gray-500">代理管理</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- 页面标题和搜索栏 -->
+    <div class="flex justify-between items-center">
+        <h2 class="text-2xl font-bold text-gray-900">代理管理</h2>
+        <div class="flex items-center space-x-4">
+            <form method="get" class="flex items-center space-x-2">
+                <input type="text" name="username" value="{{ username }}" placeholder="搜索代理用户名"
+                       class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                <button type="submit"
+                        class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-search mr-2"></i>
+                    搜索
+                </button>
+            </form>
+            <a href="{{ url_for('admin.add_agent') }}"
+               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                <i class="fas fa-plus mr-2"></i>
+                添加代理
+            </a>
+        </div>
+    </div>
+
+    <!-- 代理列表 -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-md">
+        <ul class="divide-y divide-gray-200">
+            {% for agent in agents.items %}
+            <li>
+                <div class="px-4 py-4 sm:px-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
+                                    <i class="fas fa-user-tie text-gray-500 text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">
+                                    {{ agent.username }}
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    <span class="mr-4">注册时间：{{ agent.created_at.strftime('%Y-%m-%d') }}</span>
+                                    <span class="mr-4">员工数：{{ agent.staff_count }}</span>
+                                    <span>客户数：{{ agent.customer_count }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex space-x-4">
+                            <a href="{{ url_for('admin.agent_detail', agent_id=agent.id) }}" 
+                               class="text-blue-600 hover:text-blue-900">
+                                <i class="fas fa-eye mr-1"></i>
+                                查看详情
+                            </a>
+                            {% if agent.is_active %}
+                            <button type="button" onclick="disableAgent({{ agent.id }})"
+                                    class="text-red-600 hover:text-red-900">
+                                <i class="fas fa-ban mr-1"></i>
+                                禁用账户
+                            </button>
+                            {% else %}
+                            <button type="button" onclick="enableAgent({{ agent.id }})"
+                                    class="text-green-600 hover:text-green-900">
+                                <i class="fas fa-check-circle mr-1"></i>
+                                启用账户
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- 分页 -->
+    {% if agents.pages > 1 %}
+    <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+        <div class="flex-1 flex justify-between sm:hidden">
+            {% if agents.has_prev %}
+            <a href="{{ url_for('admin.agents', page=agents.prev_num, username=username) }}"
+               class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                上一页
+            </a>
+            {% endif %}
+            {% if agents.has_next %}
+            <a href="{{ url_for('admin.agents', page=agents.next_num, username=username) }}"
+               class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                下一页
+            </a>
+            {% endif %}
+        </div>
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-gray-700">
+                    显示第 <span class="font-medium">{{ agents.page }}</span> 页
+                    共 <span class="font-medium">{{ agents.pages }}</span> 页
+                    总计 <span class="font-medium">{{ agents.total }}</span> 条记录
+                </p>
+            </div>
+            <div>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    {% if agents.has_prev %}
+                    <a href="{{ url_for('admin.agents', page=agents.prev_num, username=username) }}"
+                       class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <span class="sr-only">上一页</span>
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                    {% endif %}
+
+                    {% for page in agents.iter_pages() %}
+                        {% if page %}
+                            {% if page != agents.page %}
+                            <a href="{{ url_for('admin.agents', page=page, username=username) }}"
+                               class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                {{ page }}
+                            </a>
+                            {% else %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
+                                {{ page }}
+                            </span>
+                            {% endif %}
+                        {% else %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                ...
+                            </span>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if agents.has_next %}
+                    <a href="{{ url_for('admin.agents', page=agents.next_num, username=username) }}"
+                       class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <span class="sr-only">下一页</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- JavaScript -->
+<script>
+function disableAgent(agentId) {
+    if (confirm('确定要禁用该代理账户吗？')) {
+        fetch(`/admin/agents/${agentId}/disable`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            }
+        });
+    }
+}
+
+function enableAgent(agentId) {
+    if (confirm('确定要启用该代理账户吗？')) {
+        fetch(`/admin/agents/${agentId}/enable`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold">创建新项目</h1>
+    </div>
+
+    <div class="bg-white shadow sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <form method="POST" action="{{ url_for('admin.new_project') }}">
+                <div class="space-y-6">
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700">项目名称</label>
+                        <div class="mt-1">
+                            <input type="text" name="name" id="name" required
+                                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700">项目描述</label>
+                        <div class="mt-1">
+                            <textarea name="description" id="description" rows="4" required
+                                      class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div>
+                            <label for="target_amount" class="block text-sm font-medium text-gray-700">目标金额 ($)</label>
+                            <div class="mt-1">
+                                <input type="number" name="target_amount" id="target_amount" required step="0.01" min="0"
+                                       class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="share_price" class="block text-sm font-medium text-gray-700">每份金额 ($)</label>
+                            <div class="mt-1">
+                                <input type="number" name="share_price" id="share_price" required step="0.01" min="0"
+                                       class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="total_shares" class="block text-sm font-medium text-gray-700">总份额</label>
+                            <div class="mt-1">
+                                <input type="number" name="total_shares" id="total_shares" required min="1"
+                                       class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="daily_roi" class="block text-sm font-medium text-gray-700">每日收益率 (%)</label>
+                            <div class="mt-1">
+                                <input type="number" name="daily_roi" id="daily_roi" required step="0.01" min="0" max="100"
+                                       class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <button type="submit"
+                            class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        创建项目
+                    </button>
+                    <a href="{{ url_for('admin.projects') }}"
+                       class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        取消
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

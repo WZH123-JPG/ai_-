@@ -1,0 +1,540 @@
+{% extends "base.html" %}
+
+{% block title %}AI助手{% endblock %}
+
+{% block content %}
+<div class="fixed inset-0 bottom-16 flex flex-col bg-gray-100 max-w-full overflow-hidden">
+    <!-- 顶部操作栏 -->
+    <div class="bg-white shadow-sm px-4 py-2 flex items-center justify-between flex-shrink-0">
+        <!-- 左侧按钮 -->
+        <button onclick="toggleHistoryModal()" class="text-black hover:text-blue-500">
+            <i class="fas fa-history text-xl"></i>
+        </button>
+
+        <!-- 中间的模型选择 -->
+        <div class="flex-1 flex justify-center">
+            <select id="modelSelect" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48">
+                {% for model in models %}
+                <option value="{{ model.id }}">{{ model.model_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- 右侧按钮 -->
+        <button id="new-session-btn" onclick="createNewSession()" class="text-black hover:text-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-gray-600">
+            <i class="fas fa-plus text-xl"></i>
+        </button>
+    </div>
+
+    <!-- 聊天区域 -->
+    <div class="flex-1 flex flex-col min-h-0 relative">
+        <!-- 聊天窗口 -->
+        <div id="chat-messages" class="absolute inset-0 overflow-y-auto overflow-x-hidden p-4 space-y-4 pb-24">
+            <!-- 消息将在这里动态添加 -->
+        </div>
+
+        <!-- 输入区域 -->
+        <div class="absolute bottom-0 left-0 right-0 bg-white border-t shadow-lg">
+            <div class="flex space-x-2 p-4">
+                <input type="text" id="message-input" 
+                       class="flex-1 border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base text-gray-800" 
+                       placeholder="输入消息...">
+                <button id="send-button" onclick="sendMessage()" 
+                        class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span id="send-text">发送</span>
+                    <span id="loading-text" class="hidden">请等待...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 历史会话弹窗 -->
+<div id="history-modal" class="fixed inset-0 bg-transparent hidden z-50" onclick="closeHistoryModal(event)">
+    <div class="absolute inset-x-0 bottom-0 bg-white rounded-t-xl flex flex-col transform transition-transform duration-300 ease-out" style="height: 75vh; transform: translateY(100%);" id="history-panel">
+        <div class="p-4 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+            <h2 class="text-lg font-medium">历史会话</h2>
+            <button onclick="closeHistoryModal(event)" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto overscroll-contain" id="sessions-list">
+            <!-- 会话列表将在这里动态添加 -->
+        </div>
+    </div>
+</div>
+
+<!-- 复制成功提示 -->
+<div id="copy-toast" class="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg transform transition-transform duration-300 translate-y-[-100px] opacity-0">
+    已复制
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let isSending = false;
+let activeMessageContainer = null;
+let currentSessionId = null;
+let retryCount = 0;
+const MAX_RETRIES = 3;
+
+// 获取CSRF token
+function getCSRFToken() {
+    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+}
+
+// 关闭历史会话弹窗
+function closeHistoryModal(event) {
+    if (event) {
+        event.stopPropagation(); // 阻止事件冒泡
+    }
+    const modal = document.getElementById('history-modal');
+    const panel = document.getElementById('history-panel');
+    
+    // 如果点击的是弹窗内容区域，且不是关闭按钮或删除按钮，则不关闭
+    if (event && event.target.closest('#history-panel') && 
+        !event.target.closest('.delete-btn') && 
+        !event.target.closest('button[onclick="closeHistoryModal(event)"]')) {
+        return;
+    }
+    
+    panel.style.transform = 'translateY(100%)';
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+}
+
+// 切换历史会话弹窗
+function toggleHistoryModal() {
+    const modal = document.getElementById('history-modal');
+    const panel = document.getElementById('history-panel');
+    
+    if (modal.classList.contains('hidden')) {
+        // 显示弹窗
+        modal.classList.remove('hidden');
+        requestAnimationFrame(() => {
+            panel.style.transform = 'translateY(0)';
+        });
+    } else {
+        closeHistoryModal();
+    }
+}
+
+// 创建新会话
+async function createNewSession() {
+    // 如果按钮被禁用，直接返回
+    const newSessionBtn = document.getElementById('new-session-btn');
+    if (newSessionBtn.disabled) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/agent/sessions/new', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        currentSessionId = data.id;
+        clearMessages();
+        await loadSessions();
+        updateNewSessionButton();
+        return true;
+    } catch (error) {
+        console.error('创建会话失败:', error);
+        return false;
+    }
+}
+
+// 更新新建按钮状态
+function updateNewSessionButton() {
+    const newSessionBtn = document.getElementById('new-session-btn');
+    const messages = document.getElementById('chat-messages');
+    
+    if (currentSessionId && messages.children.length === 0) {
+        newSessionBtn.disabled = true;
+    } else {
+        newSessionBtn.disabled = false;
+    }
+}
+
+// 删除会话
+async function deleteSession(sessionId, event) {
+    event.stopPropagation(); // 阻止事件冒泡
+    
+    try {
+        const response = await fetch(`/agent/sessions/${sessionId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // 如果删除的是当前会话，清空消息
+        if (sessionId === currentSessionId) {
+            currentSessionId = null;
+            clearMessages();
+        }
+        
+        // 重新加载会话列表
+        await loadSessions();
+    } catch (error) {
+        console.error('删除会话失败:', error);
+        alert('删除会话失败，请重试');
+    }
+}
+
+// 加载会话列表并选择最新的会话
+async function loadSessions() {
+    try {
+        const response = await fetch('/agent/sessions');
+        const sessions = await response.json();
+        const sessionsList = document.getElementById('sessions-list');
+        sessionsList.innerHTML = '';
+        
+        if (sessions.length > 0) {
+            // 如果没有当前会话ID，使用最新会话的ID
+            if (!currentSessionId) {
+                currentSessionId = sessions[0].id;
+                await loadSession(currentSessionId);
+            }
+        }
+        
+        sessions.forEach(session => {
+            const sessionElement = document.createElement('div');
+            sessionElement.className = `p-4 border-b cursor-pointer hover:bg-gray-100 ${session.id === currentSessionId ? 'bg-blue-50' : ''}`;
+            sessionElement.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <div class="font-medium">${session.title || '新会话'}</div>
+                        <div class="text-sm text-gray-500">${session.created_at}</div>
+                    </div>
+                    <button class="delete-btn text-red-500 hover:text-red-700 ml-2" onclick="deleteSession(${session.id}, event)">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            `;
+            sessionElement.onclick = () => {
+                loadSession(session.id);
+                closeHistoryModal({ target: document.getElementById('history-modal') });
+            };
+            sessionsList.appendChild(sessionElement);
+        });
+    } catch (error) {
+        console.error('加载会话列表失败:', error);
+    }
+}
+
+// 加载特定会话的消息
+async function loadSession(sessionId) {
+    try {
+        currentSessionId = sessionId;
+        const response = await fetch(`/agent/messages/${sessionId}`);
+        const messages = await response.json();
+        clearMessages();
+        messages.forEach(msg => {
+            const messageElement = createMessageElement(msg.content, msg.is_user);
+            document.getElementById('chat-messages').appendChild(messageElement);
+        });
+        scrollToBottom();
+        updateNewSessionButton();
+        loadSessions(); // 刷新会话列表以更新选中状态
+    } catch (error) {
+        console.error('加载消息失败:', error);
+    }
+}
+
+// 清空消息区域
+function clearMessages() {
+    document.getElementById('chat-messages').innerHTML = '';
+}
+
+// 点击其他地方时隐藏复制按钮
+document.addEventListener('click', function(e) {
+    if (activeMessageContainer && !activeMessageContainer.contains(e.target)) {
+        const copyButton = activeMessageContainer.querySelector('.copy-button');
+        if (copyButton) {
+            copyButton.classList.add('hidden');
+        }
+        activeMessageContainer = null;
+    }
+});
+
+function createMessageElement(content, isUser) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`;
+
+    const messageContainer = document.createElement('div');
+    messageContainer.className = `flex flex-col gap-2 cursor-pointer ${isUser ? '' : 'max-w-[75%] w-full'}`;
+
+    const innerDiv = document.createElement('div');
+    innerDiv.className = `${isUser ? 'bg-blue-100 text-black' : 'bg-white text-black'} rounded-lg px-5 py-3 shadow-md break-words whitespace-pre-wrap text-base overflow-hidden ${isUser ? 'inline-block' : ''} font-normal tracking-tight`;
+    innerDiv.style.fontFamily = 'monospace';
+    if (isUser) {
+        innerDiv.style.maxWidth = 'max-content';
+    }
+
+    // 处理代码块
+    if (!isUser) {
+        const codeBlockRegex = /```([\s\S]*?)```/g;
+        let lastIndex = 0;
+        let match;
+        const fragments = [];
+
+        while ((match = codeBlockRegex.exec(content)) !== null) {
+            // 添加代码块之前的文本
+            if (match.index > lastIndex) {
+                const textBefore = content.substring(lastIndex, match.index);
+                fragments.push(createTextFragment(textBefore));
+            }
+
+            // 添加代码块
+            const codeBlock = match[1].trim();
+            fragments.push(createCodeBlock(codeBlock));
+
+            lastIndex = match.index + match[0].length;
+        }
+
+        // 添加最后剩余的文本
+        if (lastIndex < content.length) {
+            fragments.push(createTextFragment(content.substring(lastIndex)));
+        }
+
+        // 如果没有找到代码块，就作为普通文本处理
+        if (fragments.length === 0) {
+            innerDiv.textContent = content;
+        } else {
+            fragments.forEach(fragment => innerDiv.appendChild(fragment));
+        }
+    } else {
+        innerDiv.textContent = content;
+    }
+
+    // 添加复制按钮（初始隐藏）
+    const copyButton = document.createElement('button');
+    copyButton.className = `copy-button hidden text-black hover:text-green-500 text-sm flex items-center gap-1 ${isUser ? 'self-end' : 'self-start'} font-normal tracking-tight`;
+    copyButton.innerHTML = `
+        <span class="copied-text hidden text-green-500 mr-2 font-semibold">已复制</span>
+        <i class="fas fa-copy"></i>
+        <span>复制</span>
+    `;
+    copyButton.onclick = (e) => copyText(content, e);
+
+    messageContainer.appendChild(innerDiv);
+    messageContainer.appendChild(copyButton);
+    messageDiv.appendChild(messageContainer);
+
+    // 添加点击事件处理
+    messageContainer.addEventListener('click', function(e) {
+        // 如果点击的是代码块或其复制按钮，不处理全局复制按钮
+        if (e.target.closest('.code-block') || e.target.closest('.code-copy-btn')) {
+            return;
+        }
+
+        if (activeMessageContainer && activeMessageContainer !== messageContainer) {
+            const oldCopyButton = activeMessageContainer.querySelector('.copy-button');
+            if (oldCopyButton) {
+                oldCopyButton.classList.add('hidden');
+                const oldCopiedText = oldCopyButton.querySelector('.copied-text');
+                if (oldCopiedText) {
+                    oldCopiedText.classList.add('hidden');
+                }
+            }
+        }
+        copyButton.classList.remove('hidden');
+        activeMessageContainer = messageContainer;
+        e.stopPropagation();
+    });
+
+    return messageDiv;
+}
+
+// 创建普通文本片段
+function createTextFragment(text) {
+    const span = document.createElement('span');
+    span.textContent = text;
+    return span;
+}
+
+// 创建代码块
+function createCodeBlock(code) {
+    const container = document.createElement('div');
+    container.className = 'code-block relative bg-gray-100 rounded-md p-3 my-2 group';
+
+    const scrollWrapper = document.createElement('div');
+    scrollWrapper.className = 'overflow-x-auto';
+    
+    const pre = document.createElement('pre');
+    pre.className = 'text-black min-w-0 font-normal';
+    pre.style.width = 'fit-content';
+    pre.textContent = code;
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'code-copy-btn absolute top-2 right-2 bg-gray-200 hover:bg-gray-300 text-black rounded px-2 py-1 text-sm opacity-0 group-hover:opacity-100 transition-opacity z-10 font-normal';
+    copyBtn.innerHTML = '<i class="fas fa-copy mr-1"></i>复制代码';
+    copyBtn.onclick = async (e) => {
+        e.stopPropagation();
+        try {
+            await navigator.clipboard.writeText(code);
+            const originalText = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fas fa-check mr-1"></i>已复制';
+            copyBtn.classList.add('bg-green-200', 'text-green-500');
+            setTimeout(() => {
+                copyBtn.innerHTML = originalText;
+                copyBtn.classList.remove('bg-green-200', 'text-green-500');
+            }, 2000);
+        } catch (err) {
+            console.error('复制失败:', err);
+        }
+    };
+
+    scrollWrapper.appendChild(pre);
+    container.appendChild(scrollWrapper);
+    container.appendChild(copyBtn);
+    return container;
+}
+
+function scrollToBottom() {
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function setLoadingState(loading) {
+    isSending = loading;
+    const button = document.getElementById('send-button');
+    const input = document.getElementById('message-input');
+    const sendText = document.getElementById('send-text');
+    const loadingText = document.getElementById('loading-text');
+
+    button.disabled = loading;
+    input.disabled = loading;
+    sendText.classList.toggle('hidden', loading);
+    loadingText.classList.toggle('hidden', !loading);
+}
+
+async function ensureSessionExists() {
+    if (!currentSessionId && retryCount < MAX_RETRIES) {
+        retryCount++;
+        const success = await createNewSession();
+        if (!success) {
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒后重试
+            return await ensureSessionExists();
+        }
+    }
+    return currentSessionId != null;
+}
+
+async function sendMessage() {
+    const input = document.getElementById('message-input');
+    const message = input.value.trim();
+    const modelSelect = document.getElementById('modelSelect');
+    const modelId = modelSelect.value;
+    
+    if (!message || isSending) return;
+    
+    // 确保存在有效的会话
+    if (!await ensureSessionExists()) {
+        alert('无法创建会话，请刷新页面重试');
+        return;
+    }
+
+    try {
+        setLoadingState(true);
+
+        // 显示用户消息并滚动
+        const chatMessages = document.getElementById('chat-messages');
+        chatMessages.appendChild(createMessageElement(message, true));
+        scrollToBottom();
+        updateNewSessionButton();
+
+        // 清空输入框
+        input.value = '';
+
+        // 发送到后端
+        const response = await fetch('/agent/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({ 
+                message: message,
+                session_id: currentSessionId,
+                model_id: modelId
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // 显示AI回复后滚动
+        if (data.response) {
+            chatMessages.appendChild(createMessageElement(data.response, false));
+            loadSessions();
+            scrollToBottom();
+        } else if (data.error) {
+            chatMessages.appendChild(createMessageElement(`错误: ${data.error}`, false));
+            scrollToBottom();
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        const chatMessages = document.getElementById('chat-messages');
+        chatMessages.appendChild(createMessageElement(`发生错误: ${error.message}`, false));
+        scrollToBottom();
+    } finally {
+        setLoadingState(false);
+    }
+}
+
+// 添加回车发送功能
+document.getElementById('message-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey && !isSending) {
+        e.preventDefault(); // 防止换行
+        sendMessage();
+    }
+});
+
+// 页面加载完成后加载会话列表
+window.addEventListener('load', async function() {
+    await loadSessions();
+    updateNewSessionButton();
+});
+
+// 移除之前的toast元素和相关样式
+const toastElement = document.getElementById('copy-toast');
+if (toastElement) {
+    toastElement.remove();
+}
+
+async function copyText(text, event) {
+    event.stopPropagation();
+    try {
+        await navigator.clipboard.writeText(text);
+        // 显示"已复制"文本
+        const button = event.currentTarget;
+        const copiedText = button.querySelector('.copied-text');
+        copiedText.classList.remove('hidden');
+        setTimeout(() => {
+            copiedText.classList.add('hidden');
+        }, 2000);
+    } catch (err) {
+        console.error('复制失败:', err);
+    }
+}
+</script>
+{% endblock %}

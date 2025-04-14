@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-16">
+    <!-- 顶部状态栏 -->
+    <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white">
+        <div class="px-4 pt-12 pb-6">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold">个人中心</h1>
+                <div class="relative">
+                    <a href="{{ url_for('user.settings') }}" class="p-2 hover:bg-white hover:bg-opacity-10 rounded-full flex items-center">
+                        <i class="fas fa-cog text-xl"></i>
+                        <span class="ml-2">设置</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 用户信息卡片 -->
+            <div class="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-4 shadow-lg">
+                <div class="flex items-center mb-4">
+                    <div class="w-16 h-16 rounded-full overflow-hidden mr-4 relative group">
+                        {% if current_user.avatar_path %}
+                        <img src="{{ url_for('static', filename='uploads/' + current_user.avatar_path) }}" 
+                             alt="{{ current_user.username }}"
+                             class="w-full h-full object-cover">
+                        {% else %}
+                        <img src="{{ url_for('static', filename='images/default-avatar.png') }}" 
+                             alt="默认头像"
+                             class="w-full h-full object-cover">
+                        {% endif %}
+                        
+                        <!-- 头像上传表单 -->
+                        <form id="avatarForm" action="{{ url_for('user.update_avatar') }}" method="post" enctype="multipart/form-data" class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <label class="cursor-pointer w-full h-full flex items-center justify-center text-white">
+                                <span class="sr-only">更换头像</span>
+                                <i class="fas fa-camera"></i>
+                                <input type="file" name="avatar" id="avatarInput" accept="image/*" class="hidden">
+                            </label>
+                        </form>
+                    </div>
+                    <div>
+                        <div class="text-xl font-bold">{{ current_user.username }}</div>
+                        <div class="text-sm opacity-90 mt-1">{{ current_user.email }}</div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-sm opacity-75">账户余额</div>
+                        <div class="text-2xl font-bold mt-1">¥{{ "%.2f"|format(current_user.balance) }}</div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <a href="{{ url_for('user.recharge', source='profile') }}" 
+                           class="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-xl text-center text-sm font-medium transition-all duration-200">
+                            充值
+                        </a>
+                        <a href="{{ url_for('user.withdraw') }}" 
+                           class="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-xl text-center text-sm font-medium transition-all duration-200">
+                            提现
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="px-4 -mt-4">
+        <!-- 资产概览 -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm mb-6">
+            <h2 class="text-lg font-bold text-gray-900 mb-4">资产概览</h2>
+            <div class="grid grid-cols-3 gap-4">
+                <div class="text-center">
+                    <div class="text-lg font-bold text-gray-900">{{ investments_count }}</div>
+                    <div class="text-xs text-gray-500 mt-1">投资条数</div>
+                </div>
+                <div class="text-center border-l border-r border-gray-100">
+                    <div class="text-lg font-bold text-gray-900">{{ referral_count }}</div>
+                    <div class="text-xs text-gray-500 mt-1">邀请好友</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-lg font-bold text-indigo-600">¥{{ "%.2f"|format(total_earnings) }}</div>
+                    <div class="text-xs text-gray-500 mt-1">累计收益</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 功能菜单 -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm space-y-4">
+            <a href="{{ url_for('user.investments') }}" class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl transition-colors duration-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mr-3">
+                        <i class="fas fa-chart-line text-blue-600"></i>
+                    </div>
+                    <span class="text-gray-900">投资管理</span>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400"></i>
+            </a>
+
+            <a href="{{ url_for('user.recharge_list') }}" class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl transition-colors duration-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center mr-3">
+                        <i class="fas fa-wallet text-purple-600"></i>
+                    </div>
+                    <span class="text-gray-900">充值记录</span>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400"></i>
+            </a>
+
+            <a href="{{ url_for('user.withdrawals') }}" class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl transition-colors duration-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center mr-3">
+                        <i class="fas fa-money-bill-wave text-orange-600"></i>
+                    </div>
+                    <span class="text-gray-900">提现记录</span>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400"></i>
+            </a>
+
+            <a href="{{ url_for('user.earnings') }}" class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl transition-colors duration-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mr-3">
+                        <i class="fas fa-coins text-green-600"></i>
+                    </div>
+                    <span class="text-gray-900">收益明细</span>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400"></i>
+            </a>
+
+            <a href="#" class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl transition-colors duration-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center mr-3">
+                        <i class="fas fa-headset text-red-600"></i>
+                    </div>
+                    <span class="text-gray-900">联系客服</span>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400"></i>
+            </a>
+        </div>
+
+        <!-- 退出登录按钮 -->
+        <div class="mt-6 mb-8">
+            <a href="{{ url_for('auth.logout') }}" 
+               class="block w-full py-4 bg-white text-red-500 rounded-xl text-center font-medium hover:bg-red-50 transition-colors duration-200 shadow-sm">
+                退出登录
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('avatarInput').addEventListener('change', function() {
+    if (this.files && this.files[0]) {
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (this.files[0].size > maxSize) {
+            alert('图片大小不能超过5MB');
+            this.value = '';
+            return;
+        }
+        
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        if (!allowedTypes.includes(this.files[0].type)) {
+            alert('只允许上传 JPG、PNG 或 GIF 格式的图片');
+            this.value = '';
+            return;
+        }
+        
+        // 显示加载提示
+        const loadingOverlay = document.createElement('div');
+        loadingOverlay.className = 'absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center text-white';
+        loadingOverlay.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        this.closest('.relative').appendChild(loadingOverlay);
+        
+        // 自动提交表单
+        document.getElementById('avatarForm').submit();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,395 @@
+{% extends "admin/base.html" %}
+
+{% block breadcrumb %}
+<li>
+    <div class="flex items-center">
+        <span class="text-gray-500">层级管理</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">用户层级关系</h3>
+            <div class="flex space-x-3">
+                <select id="roleFilter" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="all">所有角色</option>
+                    <option value="agent">代理</option>
+                    <option value="staff">员工</option>
+                    <option value="user">普通用户</option>
+                </select>
+                <button id="expandAll" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    <i class="fas fa-expand-arrows-alt mr-2"></i>展开全部
+                </button>
+                <button id="collapseAll" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    <i class="fas fa-compress-arrows-alt mr-2"></i>收起全部
+                </button>
+            </div>
+        </div>
+        <div class="border-t border-gray-200">
+            <div class="p-4">
+                <div id="hierarchyTree" class="tree-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.tree-container {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+}
+
+.tree-node {
+    margin: 10px 0;
+    padding-left: 20px;
+    position: relative;
+}
+
+.tree-content {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background-color: #f9fafb;
+    margin-bottom: 5px;
+}
+
+.tree-content:hover {
+    background-color: #f3f4f6;
+}
+
+.tree-toggle {
+    cursor: pointer;
+    margin-right: 10px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    background-color: #e5e7eb;
+}
+
+.tree-toggle:hover {
+    background-color: #d1d5db;
+}
+
+.tree-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.role-badge {
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.role-admin {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.role-agent {
+    background-color: #e0e7ff;
+    color: #3730a3;
+}
+
+.role-staff {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.role-user {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.tree-children {
+    margin-left: 20px;
+    position: relative;
+}
+
+.tree-children::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #e5e7eb;
+}
+
+.tree-node::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20px;
+    width: 20px;
+    height: 2px;
+    background-color: #e5e7eb;
+}
+
+.user-info {
+    margin: 0 10px;
+}
+
+.status-badge {
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-left: 10px;
+}
+
+.status-badge.active {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.status-badge.inactive {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.tree-content {
+    transition: background-color 0.2s;
+}
+
+.tree-toggle {
+    transition: transform 0.2s;
+}
+
+.tree-children {
+    transition: all 0.3s ease-in-out;
+}
+
+.role-system {
+    background-color: #e5e7eb;
+    color: #374151;
+}
+
+.tree-content {
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.tree-content:hover {
+    background-color: #f3f4f6;
+}
+
+.tree-toggle {
+    transition: transform 0.2s;
+}
+
+.tree-children {
+    transition: all 0.3s ease-in-out;
+}
+
+.user-info {
+    min-width: 200px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let hierarchyData = null;
+    
+    // 获取层级数据
+    function fetchHierarchyData() {
+        fetch('/admin/api/hierarchy')
+            .then(response => response.json())
+            .then(data => {
+                hierarchyData = data;
+                renderTree(hierarchyData);
+                // 默认展开所有节点
+                document.getElementById('expandAll').click();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('hierarchyTree').innerHTML = '<div class="text-red-500">加载数据失败</div>';
+            });
+    }
+    
+    // 渲染树节点
+    function renderTreeNode(node) {
+        const div = document.createElement('div');
+        div.className = 'tree-node';
+        div.setAttribute('data-role', node.role.toLowerCase());
+        
+        const content = document.createElement('div');
+        content.className = 'tree-content';
+        
+        // 添加展开/收起按钮
+        if (node.children && node.children.length > 0) {
+            const toggle = document.createElement('span');
+            toggle.className = 'tree-toggle';
+            toggle.innerHTML = '<i class="fas fa-chevron-right"></i>';
+            toggle.onclick = function(e) {
+                e.stopPropagation();
+                const childrenContainer = div.querySelector('.tree-children');
+                const icon = toggle.querySelector('i');
+                if (childrenContainer.style.display === 'none') {
+                    childrenContainer.style.display = 'block';
+                    icon.className = 'fas fa-chevron-down';
+                } else {
+                    childrenContainer.style.display = 'none';
+                    icon.className = 'fas fa-chevron-right';
+                }
+            };
+            content.appendChild(toggle);
+        }
+        
+        // 添加用户信息
+        const label = document.createElement('div');
+        label.className = 'tree-label';
+        
+        // 用户图标（根据角色显示不同图标）
+        const icon = document.createElement('i');
+        switch(node.role.toLowerCase()) {
+            case 'system':
+                icon.className = 'fas fa-server';
+                break;
+            case 'admin':
+                icon.className = 'fas fa-user-shield';
+                break;
+            case 'agent':
+                icon.className = 'fas fa-user-tie';
+                break;
+            case 'staff':
+                icon.className = 'fas fa-user-tag';
+                break;
+            default:
+                icon.className = 'fas fa-user';
+        }
+        label.appendChild(icon);
+        
+        // 用户名和邮箱
+        const userInfo = document.createElement('div');
+        userInfo.className = 'user-info';
+        if (node.role === 'system') {
+            userInfo.innerHTML = `<div class="font-medium">系统根节点</div>`;
+        } else {
+            userInfo.innerHTML = `
+                <div class="font-medium">${node.username}</div>
+                <div class="text-sm text-gray-500">${node.email || ''}</div>
+            `;
+        }
+        label.appendChild(userInfo);
+        
+        // 角色标签
+        const roleBadge = document.createElement('span');
+        roleBadge.className = `role-badge role-${node.role.toLowerCase()}`;
+        roleBadge.textContent = getRoleName(node.role);
+        label.appendChild(roleBadge);
+        
+        // 状态标签（系统节点不显示状态）
+        if (node.role !== 'system') {
+            const statusBadge = document.createElement('span');
+            statusBadge.className = `status-badge ${node.is_active ? 'active' : 'inactive'}`;
+            statusBadge.textContent = node.is_active ? '启用' : '禁用';
+            label.appendChild(statusBadge);
+        }
+        
+        content.appendChild(label);
+        div.appendChild(content);
+        
+        // 添加子节点
+        if (node.children && node.children.length > 0) {
+            const childrenContainer = document.createElement('div');
+            childrenContainer.className = 'tree-children';
+            childrenContainer.style.display = 'none';  // 默认收起
+            node.children.forEach(child => {
+                childrenContainer.appendChild(renderTreeNode(child));
+            });
+            div.appendChild(childrenContainer);
+        }
+        
+        return div;
+    }
+    
+    // 获取角色的中文名称
+    function getRoleName(role) {
+        const roleNames = {
+            'system': '系统',
+            'admin': '管理员',
+            'agent': '代理',
+            'staff': '员工',
+            'user': '用户'
+        };
+        return roleNames[role.toLowerCase()] || role;
+    }
+    
+    // 渲染整个树
+    function renderTree(data) {
+        const container = document.getElementById('hierarchyTree');
+        container.innerHTML = '';
+        if (data && Object.keys(data).length > 0) {
+            container.appendChild(renderTreeNode(data));
+        } else {
+            container.innerHTML = '<div class="text-gray-500 text-center">暂无数据</div>';
+        }
+    }
+    
+    // 角色筛选
+    document.getElementById('roleFilter').addEventListener('change', function(e) {
+        const role = e.target.value;
+        const nodes = document.querySelectorAll('.tree-node');
+        
+        if (role === 'all') {
+            // 显示所有节点
+            nodes.forEach(node => {
+                node.style.display = 'block';
+            });
+        } else {
+            // 显示选中角色的节点及其父节点
+            nodes.forEach(node => {
+                if (node.getAttribute('data-role') === role) {
+                    // 显示选中的节点
+                    node.style.display = 'block';
+                    // 显示父节点
+                    let parent = node.parentElement;
+                    while (parent && !parent.classList.contains('tree-container')) {
+                        if (parent.classList.contains('tree-node')) {
+                            parent.style.display = 'block';
+                        }
+                        parent = parent.parentElement;
+                    }
+                } else {
+                    node.style.display = 'none';
+                }
+            });
+        }
+    });
+    
+    // 展开全部
+    document.getElementById('expandAll').addEventListener('click', function() {
+        document.querySelectorAll('.tree-children').forEach(el => {
+            el.style.display = 'block';
+        });
+        document.querySelectorAll('.tree-toggle i').forEach(el => {
+            el.className = 'fas fa-chevron-down';
+        });
+    });
+    
+    // 收起全部
+    document.getElementById('collapseAll').addEventListener('click', function() {
+        document.querySelectorAll('.tree-children').forEach(el => {
+            el.style.display = 'none';
+        });
+        document.querySelectorAll('.tree-toggle i').forEach(el => {
+            el.className = 'fas fa-chevron-right';
+        });
+    });
+    
+    // 初始加载数据
+    fetchHierarchyData();
+});
+</script>
+{% endblock %} 

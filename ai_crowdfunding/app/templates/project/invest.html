@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-16">
+    <!-- 顶部状态栏 -->
+    <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white">
+        <div class="px-4 pt-12 pb-8">
+            <div class="flex items-center space-x-4">
+                <a href="{{ url_for('project.project_detail', id=project.id) }}" 
+                   class="text-white hover:text-gray-200">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </a>
+                <h1 class="text-xl font-bold truncate flex-1">确认投资</h1>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="px-4 py-6 pb-32">
+        <div class="space-y-4">
+            <!-- 项目信息卡片 -->
+            <div class="bg-white rounded-2xl p-6 shadow-lg">
+                <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                    <i class="fas fa-file-invoice-dollar text-indigo-500 mr-2"></i>
+                    {{ project.name }}
+                </h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-3">
+                        <div>
+                            <div class="text-sm text-gray-500">每份金额</div>
+                            <div class="text-lg font-bold text-gray-900">¥{{ "%.2f"|format(project.share_price) }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">剩余份数</div>
+                            <div class="text-lg font-bold text-gray-900">{{ project.remaining_shares }}</div>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="text-sm text-gray-500">日收益率</div>
+                            <div class="text-lg font-bold text-green-600">{{ "%.2f"|format(project.daily_roi) }}%</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">账户余额</div>
+                            <div class="text-lg font-bold text-gray-900">¥{{ "%.2f"|format(current_user.balance) }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 投资表单 -->
+            <form method="POST" class="space-y-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                <!-- 份数输入 -->
+                <div class="bg-white rounded-2xl p-6 shadow-lg">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <label for="shares" class="text-sm font-medium text-gray-700">投资份数</label>
+                            <span class="text-xs text-gray-500">最多可投 {{ project.remaining_shares }} 份</span>
+                        </div>
+                        <div class="relative">
+                            <input type="number" name="shares" id="shares" required min="1" max="{{ project.remaining_shares }}"
+                                   class="block w-full px-4 py-3 rounded-xl border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 text-lg font-medium"
+                                   placeholder="请输入投资份数">
+                            <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                                <span class="text-gray-500">份</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 投资预览 -->
+                <div id="investment-preview" class="bg-white rounded-2xl p-6 shadow-lg" style="display: none;">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-calculator text-indigo-500 mr-2"></i>
+                        投资预览
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500">投资份数</span>
+                            <span class="text-lg font-bold text-gray-900" id="preview-shares">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500">投资金额</span>
+                            <span class="text-lg font-bold text-gray-900" id="preview-amount">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500">预计日收益</span>
+                            <span class="text-lg font-bold text-green-600" id="preview-daily-profit">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 按钮组 -->
+                <div class="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-100 p-4">
+                    <div class="flex space-x-4 max-w-lg mx-auto">
+                        <a href="{{ url_for('project.project_detail', id=project.id) }}" 
+                           class="flex-1 py-3 px-4 border border-gray-300 text-gray-700 rounded-xl text-center font-medium hover:bg-gray-50 transition-colors duration-200">
+                            取消
+                        </a>
+                        <button type="submit" 
+                                class="flex-1 py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-600 hover:to-purple-700 transition-colors duration-200 shadow-lg">
+                            确认投资
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('shares').addEventListener('input', function(e) {
+    const shares = parseInt(e.target.value) || 0;
+    const sharePrice = parseFloat('{{ project.share_price }}');
+    const dailyRoi = parseFloat('{{ project.daily_roi }}');
+    
+    const amount = shares * sharePrice;
+    // 计算日收益：投资金额 * 日收益率
+    const dailyProfit = amount * (dailyRoi / 100);
+    
+    document.getElementById('preview-shares').textContent = shares + ' 份';
+    document.getElementById('preview-amount').textContent = '¥' + amount.toFixed(2);
+    document.getElementById('preview-daily-profit').textContent = '¥' + dailyProfit.toFixed(2);
+    
+    document.getElementById('investment-preview').style.display = shares > 0 ? 'block' : 'none';
+});
+</script>
+{% endblock %}

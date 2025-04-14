@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-16">
+    <!-- 顶部状态栏 -->
+    <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white">
+        <div class="px-4 pt-12 pb-8">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center">
+                    <a href="{{ url_for('user.profile') }}" class="mr-3">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <h1 class="text-xl font-bold">我的收益</h1>
+                </div>
+            </div>
+            
+            <!-- 收益概览 -->
+            <div class="space-y-4">
+                <div>
+                    <div class="text-sm opacity-90">今日收益 (元)</div>
+                    <div class="text-2xl font-bold">¥{{ "%.2f"|format(today_earnings) }}</div>
+                </div>
+                <div class="grid grid-cols-2 gap-8">
+                    <div>
+                        <div class="text-sm opacity-90">投资收益</div>
+                        <div class="text-lg font-medium">¥{{ "%.2f"|format(total_investment_earnings) }}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm opacity-90">推荐收益</div>
+                        <div class="text-lg font-medium">¥{{ "%.2f"|format(referral_earnings) }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="px-4 -mt-4">
+        <!-- 最近7天收益走势 -->
+        <div class="bg-white rounded-2xl p-4 mb-6 shadow-sm">
+            <h2 class="text-lg font-bold text-gray-900 mb-4">收益走势</h2>
+            <div class="space-y-4">
+                {% for profit in daily_profits %}
+                <div class="flex justify-between items-center">
+                    <div class="text-sm text-gray-600">{{ profit.date.strftime('%Y-%m-%d') }}</div>
+                    <div class="text-sm font-medium text-green-600">+¥{{ "%.2f"|format(profit.amount) }}</div>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-gray-500">暂无收益记录</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 投资收益明细 -->
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-gray-100">
+                <h2 class="text-lg font-bold text-gray-900">收益来源明细</h2>
+            </div>
+            
+            <!-- 投资收益列表 -->
+            <div id="investmentList" class="divide-y divide-gray-100">
+                {% if investments %}
+                {% for investment in investments %}
+                <div class="p-4 earning-item investment-earning">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <div class="text-gray-900 font-medium">{{ investment.project.name }}</div>
+                            <div class="text-sm text-gray-500">投资收益</div>
+                        </div>
+                        <div class="text-green-600 font-medium">
+                            预计日收益：¥{{ "%.2f"|format(investment.daily_profit) }}
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-500">
+                        投资金额：¥{{ "%.2f"|format(investment.amount) }} | 
+                        投资时间：{{ investment.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- 推荐奖励列表 -->
+            <div id="referralList" class="divide-y divide-gray-100">
+                {% if referral_bonuses %}
+                {% for bonus in referral_bonuses %}
+                <div class="p-4 earning-item referral-earning">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <div class="text-gray-900 font-medium">推荐奖励</div>
+                            <div class="text-sm text-gray-500">来自用户：{{ bonus.referred_username }}</div>
+                        </div>
+                        <div class="text-green-600 font-medium">+¥{{ "%.2f"|format(bonus.amount) }}</div>
+                    </div>
+                    <div class="text-xs text-gray-500">
+                        获得时间：{{ bonus.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

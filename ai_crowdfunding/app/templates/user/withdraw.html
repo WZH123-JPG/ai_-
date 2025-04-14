@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-16">
+    <!-- 顶部状态栏 -->
+    <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white">
+        <div class="px-4 pt-12 pb-6">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold">账户提现</h1>
+            </div>
+            
+            <!-- 余额卡片 -->
+            <div class="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-4 shadow-lg">
+                <div class="text-sm opacity-90">可提现余额</div>
+                <div class="text-3xl font-bold mt-2">¥{{ "%.2f"|format(current_user.balance) }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="px-4 -mt-4">
+        <!-- 提现规则说明 -->
+        <div class="bg-blue-50 p-4 rounded-lg mb-6">
+            <h3 class="text-lg font-semibold mb-2">提现规则</h3>
+            <ul class="list-disc list-inside space-y-2">
+                <li>最低提现金额：{{ config.min_amount }}元</li>
+                <li>手续费：{{ config.fee_percentage }}%</li>
+                <li>提现时间：
+                    {% set days = {
+                        '0': '周日',
+                        '1': '周一',
+                        '2': '周二',
+                        '3': '周三',
+                        '4': '周四',
+                        '5': '周五',
+                        '6': '周六'
+                    } %}
+                    {% set allowed_days = config.allowed_days.split(',') %}
+                    {% for day in allowed_days %}
+                        {{ days[day] }}{% if not loop.last %}、{% endif %}
+                    {% endfor %}
+                    {{ config.start_time }}至{{ config.end_time }}
+                </li>
+            </ul>
+        </div>
+
+        <!-- 提现表单 -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm mb-6">
+            <h2 class="text-lg font-bold text-gray-900 mb-4">提现信息</h2>
+            
+            <div class="space-y-4">
+                <!-- 提现金额 -->
+                <div>
+                    <label for="amount" class="block text-sm font-medium text-gray-700 mb-2">提现金额</label>
+                    <input type="number" name="amount" id="amount" step="0.01" min="{{ config.min_amount }}"
+                           class="block w-full pl-8 pr-4 py-3 border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                           required>
+                </div>
+
+                <!-- 提现方式 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">提现方式</label>
+                    <div class="space-y-3">
+                        <button onclick="selectWithdrawMethod('alipay')" data-method="alipay" class="withdraw-method-btn w-full flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-indigo-500 transition-colors duration-200">
+                            <div class="flex items-center">
+                                <i class="fab fa-alipay text-2xl text-blue-500"></i>
+                                <span class="ml-3 font-medium">支付宝</span>
+                            </div>
+                            <i class="fas fa-check text-indigo-600 opacity-0"></i>
+                        </button>
+                        
+                        <button onclick="selectWithdrawMethod('wechat')" data-method="wechat" class="withdraw-method-btn w-full flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-indigo-500 transition-colors duration-200">
+                            <div class="flex items-center">
+                                <i class="fab fa-weixin text-2xl text-green-500"></i>
+                                <span class="ml-3 font-medium">微信支付</span>
+                            </div>
+                            <i class="fas fa-check text-indigo-600 opacity-0"></i>
+                        </button>
+
+                        <button onclick="selectWithdrawMethod('bank')" data-method="bank" class="withdraw-method-btn w-full flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-indigo-500 transition-colors duration-200">
+                            <div class="flex items-center">
+                                <i class="fas fa-university text-2xl text-gray-600"></i>
+                                <span class="ml-3 font-medium">银行卡</span>
+                            </div>
+                            <i class="fas fa-check text-indigo-600 opacity-0"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 账户信息 -->
+                <div>
+                    <label for="account-info" class="block text-sm font-medium text-gray-700 mb-2">收款账号</label>
+                    <input type="text" id="account-info" 
+                           class="block w-full px-4 py-3 border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                           placeholder="请输入收款账号">
+                </div>
+
+                <!-- 账户姓名 -->
+                <div>
+                    <label for="account-name" class="block text-sm font-medium text-gray-700 mb-2">账户姓名</label>
+                    <input type="text" id="account-name" 
+                           class="block w-full px-4 py-3 border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                           placeholder="请输入账户姓名">
+                </div>
+            </div>
+        </div>
+
+        <!-- 提现说明 -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm mb-6">
+            <h3 class="text-sm font-medium text-gray-900 mb-2">提现说明</h3>
+            <ul class="text-xs text-gray-500 space-y-1">
+                <li>1. 单笔提现金额不得低于100元</li>
+                <li>2. 提现申请将在1-3个工作日内处理</li>
+                <li>3. 请确保填写的账户信息准确无误</li>
+                <li>4. 如有疑问请联系客服</li>
+            </ul>
+        </div>
+
+        <!-- 确认按钮 -->
+        <button onclick="submitWithdraw()" 
+                class="w-full py-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl text-lg font-medium hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+            确认提现
+        </button>
+    </div>
+
+    <!-- 提现记录 -->
+    {% if withdrawals %}
+    <div class="mt-8">
+        <h3 class="text-xl font-semibold mb-4">提现记录</h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">时间</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">金额</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">手续费</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">实际到账</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                {% for withdrawal in withdrawals %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ withdrawal.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ "%.2f"|format(withdrawal.amount) }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ "%.2f"|format(withdrawal.fee) }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ "%.2f"|format(withdrawal.actual_amount) }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if withdrawal.status == 'pending' %}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                            待审核
+                        </span>
+                        {% elif withdrawal.status == 'approved' %}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                            已通过
+                        </span>
+                        {% elif withdrawal.status == 'rejected' %}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                            已拒绝
+                        </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+const minAmount = {{ config.min_amount }};
+const userBalance = {{ current_user.balance }};
+let selectedWithdrawMethod = '';
+
+function selectWithdrawMethod(method) {
+    selectedWithdrawMethod = method;
+    document.querySelectorAll('.withdraw-method-btn').forEach(btn => {
+        btn.classList.remove('border-indigo-500');
+        btn.querySelector('.fa-check').classList.add('opacity-0');
+    });
+    const selectedBtn = document.querySelector(`[data-method="${method}"]`);
+    selectedBtn.classList.add('border-indigo-500');
+    selectedBtn.querySelector('.fa-check').classList.remove('opacity-0');
+    
+    // 从localStorage加载上次使用的账户信息
+    const lastMethod = localStorage.getItem('lastWithdrawMethod');
+    if (lastMethod === method) {
+        document.getElementById('account-info').value = localStorage.getItem('lastAccountInfo') || '';
+        document.getElementById('account-name').value = localStorage.getItem('lastAccountName') || '';
+    } else {
+        document.getElementById('account-info').value = '';
+        document.getElementById('account-name').value = '';
+    }
+}
+
+function checkWithdrawalTime() {
+    const now = new Date();
+    const currentHour = now.getHours().toString().padStart(2, '0');
+    const currentMinute = now.getMinutes().toString().padStart(2, '0');
+    const currentTime = `${currentHour}:${currentMinute}`;
+    
+    // 获取当前是星期几（0-6，周日-周六）
+    const currentDay = now.getDay().toString();
+    
+    // 获取允许的星期
+    const allowedDays = '{{ config.allowed_days }}'.split(',');
+    
+    // 检查是否在允许的星期内
+    if (!allowedDays.includes(currentDay)) {
+        return {
+            allowed: false,
+            message: '当前不在允许提现的时间范围内，请在{{ config.allowed_days_display }}的{{ config.start_time }}至{{ config.end_time }}之间提现'
+        };
+    }
+    
+    // 检查是否在允许的时间范围内
+    if (currentTime < '{{ config.start_time }}' || currentTime > '{{ config.end_time }}') {
+        return {
+            allowed: false,
+            message: '当前不在允许提现的时间范围内，请在{{ config.allowed_days_display }}的{{ config.start_time }}至{{ config.end_time }}之间提现'
+        };
+    }
+    
+    return { allowed: true };
+}
+
+function submitWithdraw() {
+    const amount = document.getElementById('amount').value;
+    const accountInfo = document.getElementById('account-info').value;
+    const accountName = document.getElementById('account-name').value;
+
+    // 保存用户输入的账户信息到localStorage
+    localStorage.setItem('lastWithdrawMethod', selectedWithdrawMethod);
+    localStorage.setItem('lastAccountInfo', accountInfo);
+    localStorage.setItem('lastAccountName', accountName);
+    
+    // 检查提现时间
+    const timeCheck = checkWithdrawalTime();
+    if (!timeCheck.allowed) {
+        alert(timeCheck.message);
+        return;
+    }
+    
+    if (!amount || parseFloat(amount) < minAmount) {
+        alert('提现金额不能低于' + minAmount + '元');
+        return;
+    }
+    
+    if (!selectedWithdrawMethod) {
+        alert('请选择提现方式');
+        return;
+    }
+    
+    if (!accountInfo) {
+        alert('请输入收款账号');
+        return;
+    }
+    
+    if (!accountName) {
+        alert('请输入账户姓名');
+        return;
+    }
+    
+    // 检查提现金额是否超过账户余额
+    if (parseFloat(amount) > userBalance) {
+        alert('提现金额不能超过账户余额');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('amount', amount);
+    formData.append('csrf_token', '{{ csrf_token() }}');
+    
+    let bankName;
+    if (selectedWithdrawMethod === 'alipay') {
+        bankName = '支付宝';
+    } else if (selectedWithdrawMethod === 'wechat') {
+        bankName = '微信支付';
+    } else {
+        bankName = '银行卡';
+    }
+    
+    formData.append('bank_name', bankName);
+    formData.append('bank_account', accountInfo);
+    formData.append('account_name', accountName);
+    
+    // 发送提现请求
+    fetch('{{ url_for("user.create_withdrawal") }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('提现请求失败');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.code === 200) {
+            alert(data.message);
+            window.location.href = '{{ url_for("user.withdrawals") }}';
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('提现申请失败，请重试');
+    });
+}
+</script>
+{% endblock %}
